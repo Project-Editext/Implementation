@@ -45,12 +45,15 @@ export default function Dashboard() {
       <header className="navbar bg-secondary text-white px-4 py-3 shadow-md">
         <div className="container-fluid d-flex justify-between align-items-center">
           <div className="d-flex align-items-center gap-3">
-            <Image
-              src="/assets/img/logo.png"
-              alt="Logo"
-              width={40}
-              height={40}
-            />
+            <Link href="/" aria-label="Go to homepage">
+              <Image 
+                className="logo me-2" 
+                src="/assets/img/logo.png" 
+                alt="Company Logo"
+                width={40}
+                height={40}
+              />
+            </Link>
             <h1 className="mb-0 fs-4">Editext</h1>
           </div>
 

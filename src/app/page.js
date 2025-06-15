@@ -3,6 +3,8 @@ import Script from "next/script";
 import Navbar from "../components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignInButton } from "@clerk/nextjs";
 
 export default function LandingPage() {
   return (
@@ -34,11 +36,20 @@ export default function LandingPage() {
         </div>
 
         <div className="text-center mt-4">
-          <Link href="/dashboard">
-            <button className="btn btn-light btn-xl">Go to Dashboard</button>
-          </Link>
+          <SignedIn>
+            <Link href="/dashboard">
+              <button className="btn btn-light btn-xl">Go to Dashboard</button>
+            </Link>
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="btn btn-light btn-xl">Sign In to Get Started</button>
+            </SignInButton>
+          </SignedOut>
         </div>
       </header>
+      
+      {/* Rest of your content remains the same */}
       <section className="page-section bg-light mb-0" id="about">
         <div className="container">
           <h2 className="page-section-heading text-center text-uppercase text-black">

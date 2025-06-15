@@ -16,13 +16,15 @@ export default function Navbar() {
     <nav className="navbar bg-secondary text-uppercase fixed-top" id="mainNav">
       <div className="container d-flex flex-nowrap">
         <div className="d-flex align-items-center">
-          <Image 
-            className="logo me-2" 
-            src="/assets/img/logo.png" 
-            alt="Logo"
-            width={60}
-            height={60}
-          />
+          <Link href="/" aria-label="Go to homepage">
+            <Image 
+              className="logo me-2" 
+              src="/assets/img/logo.png" 
+              alt="Logo"
+              width={60}
+              height={60}
+            />
+          </Link>
         </div>
         <Link className="navbar-brand me-auto" href="/">Editext</Link>
         

@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
+import templateMap from "@/lib/templateMap";
 
 export async function GET(req, context) {
   try {
@@ -67,5 +68,28 @@ export async function DELETE(req, { params }) {
   } catch (err) {
     console.error("Error deleting document:", err);
     return new NextResponse("Failed to delete document", { status: 500 });
+  }
+}
+export async function POST(req) {
+  try {
+    await connectToDB();
+    const { userId } = auth();
+    const { title, template } = await req.json();
+
+    const content = templateMap[template]?.content || "";
+
+    const doc = await Document.create({
+      title: title || "Untitled",
+      content,
+      userId,
+    });
+
+    return NextResponse.json(doc, { status: 201 });
+  } catch (err) {
+    console.error("Error creating document:", err);
+    return NextResponse.json(
+      { message: "Failed to create document", error: err.message },
+      { status: 500 }
+    );
   }
 }

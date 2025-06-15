@@ -83,7 +83,11 @@ export default function EditorPage() {
     }
     loadContent();
   }, [documentId, editor, user]);
-
+  useEffect(() => {
+    if (editor && content) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
   if (!user) return <p className="text-center mt-10">You must be signed in.</p>;
   if (!editor) return null;
 

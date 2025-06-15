@@ -60,10 +60,8 @@ export default function Dashboard() {
               placeholder="Search For a File"
               className="form-control form-control-sm w-50"
             />
-            <UserButton afterSignOutUrl="/sign-in" />
-            <SignOutButton redirectUrl="/sign-in">
-              <button className="btn btn-danger btn-sm">Logout</button>
-            </SignOutButton>
+            <UserButton afterSignOutUrl="/#portfolio" />
+            
           </div>
         </div>
       </header>

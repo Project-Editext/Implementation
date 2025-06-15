@@ -2,7 +2,6 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { SignOutButton } from "@clerk/nextjs";
 
 export default function Header() {
   const router = useRouter();

@@ -6,18 +6,25 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
 import { useUser } from '@clerk/nextjs';
+import "../../../../public/css/globals.css";
+
 
 export default function EditorPage() {
   const { id: documentId } = useParams();
   const { user } = useUser();
-  const [content, setContent] = useState('<p>Loading...</p>');
+  const [content, setContent] = useState('');
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: true }),
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Placeholder.configure({
+        placeholder: 'Start typing here...',
+        emptyEditorClass: 'is-editor-empty',
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -37,8 +44,9 @@ export default function EditorPage() {
       const res = await fetch(`/api/documents/${documentId}`);
       if (res.ok) {
         const data = await res.json();
-        setContent(data.content || '<p>Start writing here...</p>');
-        editor?.commands.setContent(data.content || '');
+        const initialContent = data.content || '';
+        setContent(initialContent);
+        editor?.commands.setContent(initialContent);
       }
     }
     loadContent();
@@ -50,6 +58,7 @@ export default function EditorPage() {
   return (
     <div className="max-w-4xl mx-auto mt-10 p-4 bg-white rounded shadow editor-container">
       <div className="editor-toolbar flex flex-wrap gap-2 mb-4 border-b pb-2">
+        {/* Toolbar buttons remain unchanged */}
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'active' : ''}>B</button>
         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'active' : ''}>I</button>
         <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'active' : ''}>U</button>
@@ -64,7 +73,7 @@ export default function EditorPage() {
         <button onClick={() => editor.chain().focus().undo().run()}>Undo</button>
         <button onClick={() => editor.chain().focus().redo().run()}>Redo</button>
       </div>
-      <EditorContent editor={editor} className="ProseMirror" />
+      <EditorContent editor={editor} className="ProseMirror"/>
     </div>
   );
 }

@@ -12,7 +12,10 @@ export async function GET(req, context) {
     const doc = await Document.findById(id);
 
     if (!doc) {
-      return NextResponse.json({ message: "Document not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Document not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(doc);
@@ -22,5 +25,47 @@ export async function GET(req, context) {
       { message: "Failed to fetch document", error: error.message },
       { status: 500 }
     );
+  }
+}
+
+export async function PUT(req, { params }) {
+  try {
+    await connectToDB();
+    const body = await req.json();
+    const { title, content } = body;
+
+    const updatedFields = {};
+    if (title !== undefined) updatedFields.title = title;
+    if (content !== undefined) updatedFields.content = content;
+
+    const updatedDoc = await Document.findByIdAndUpdate(
+      params.id,
+      updatedFields,
+      { new: true }
+    );
+
+    return NextResponse.json(updatedDoc);
+  } catch (err) {
+    return new NextResponse("Failed to update document", { status: 500 });
+  }
+}
+
+// DELETE: Delete a document by ID
+export async function DELETE(req, { params }) {
+  try {
+    await connectToDB();
+
+    const deletedDoc = await Document.findByIdAndDelete(params.id);
+    if (!deletedDoc) {
+      return NextResponse.json(
+        { message: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: "Document deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting document:", err);
+    return new NextResponse("Failed to delete document", { status: 500 });
   }
 }

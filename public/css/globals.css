@@ -75,3 +75,118 @@
   height: 0;
   font-style: italic;
 }
+
+
+/* === Editor Page Styles === */
+
+.editor-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.editor-title {
+  font-size: 2rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  padding: 0.5rem 0;
+  width: 100%;
+  color: var(--foreground, #171717);
+  outline: none;
+}
+
+/* Toolbar layout */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Toolbar buttons */
+.toolbar-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background-color: #eaeaea;
+  border-color: #999;
+}
+
+.toolbar-btn.active {
+  background-color: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e3a8a;
+}
+
+/* Action buttons */
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.btn-secondary {
+  background-color: #e5e7eb;
+  color: #111827;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+}
+
+/* ProseMirror content area */
+.ProseMirror {
+  min-height: 400px;
+  padding: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  line-height: 1.6;
+  font-size: 1rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Placeholder fix (already in your CSS, repeated for clarity) */
+.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}

@@ -83,130 +83,83 @@ export default function EditorPage() {
     }
     loadContent();
   }, [documentId, editor, user]);
+
   useEffect(() => {
     if (editor && content) {
       editor.commands.setContent(content);
     }
   }, [editor, content]);
+
   if (!user) return <p className="text-center mt-10">You must be signed in.</p>;
   if (!editor) return null;
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-4 bg-white rounded shadow editor-container">
+    <div className="editor-container">
       <div className="flex items-center justify-between mb-4">
         {isEditingTitle ? (
           <input
             type="text"
-            className="border px-2 py-1 text-lg font-semibold flex-1 mr-2"
+            className="editor-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
         ) : (
-          <h2 className="text-2xl font-bold flex-1">{title || "Untitled"}</h2>
+          <h2 className="editor-title" onClick={() => setIsEditingTitle(true)}>
+            {title || "Untitled"}
+          </h2>
         )}
 
         {isOwner && (
           <div className="flex gap-2">
             {isEditingTitle ? (
-              <button
-                onClick={handleSaveTitle}
-                className="bg-blue-500 text-white px-3 py-1 rounded"
-              >
+              <button onClick={handleSaveTitle} className="btn-primary">
                 Save
               </button>
             ) : (
               <button
                 onClick={() => setIsEditingTitle(true)}
-                className="bg-gray-300 text-black px-3 py-1 rounded"
+                className="btn-secondary"
               >
                 Rename
               </button>
             )}
-            <button
-              onClick={handleDelete}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
+            <button onClick={handleDelete} className="btn-danger">
               Delete
             </button>
           </div>
         )}
       </div>
 
-      <div className="editor-toolbar flex flex-wrap gap-2 mb-4 border-b pb-2">
-        <button
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive("bold") ? "active" : ""}
-        >
-          B
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive("italic") ? "active" : ""}
-        >
-          I
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={editor.isActive("underline") ? "active" : ""}
-        >
-          U
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive("bulletList") ? "active" : ""}
-        >
-          • List
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={editor.isActive("orderedList") ? "active" : ""}
-        >
-          1. List
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          className={editor.isActive("paragraph") ? "active" : ""}
-        >
-          P
-        </button>
-        <button
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
-          className={editor.isActive("heading", { level: 1 }) ? "active" : ""}
-        >
-          H1
-        </button>
-        <button
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
-          className={editor.isActive("heading", { level: 2 }) ? "active" : ""}
-        >
-          H2
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        >
-          Left
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        >
-          Center
-        </button>
-        <button
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        >
-          Right
-        </button>
-        <button onClick={() => editor.chain().focus().undo().run()}>
-          Undo
-        </button>
-        <button onClick={() => editor.chain().focus().redo().run()}>
-          Redo
-        </button>
+      <div className="editor-toolbar">
+        {[
+          { cmd: "toggleBold", label: "B" },
+          { cmd: "toggleItalic", label: "I" },
+          { cmd: "toggleUnderline", label: "U" },
+          { cmd: "toggleBulletList", label: "• List" },
+          { cmd: "toggleOrderedList", label: "1. List" },
+          { cmd: "setParagraph", label: "P" },
+          { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
+          { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
+          { cmd: "setTextAlign", args: "left", label: "Left" },
+          { cmd: "setTextAlign", args: "center", label: "Center" },
+          { cmd: "setTextAlign", args: "right", label: "Right" },
+          { cmd: "undo", label: "Undo" },
+          { cmd: "redo", label: "Redo" },
+        ].map(({ cmd, label, args }, idx) => (
+          <button
+            key={idx}
+            onClick={() =>
+              args
+                ? editor.chain().focus()[cmd](args).run()
+                : editor.chain().focus()[cmd]().run()
+            }
+            className="toolbar-btn"
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
       <EditorContent editor={editor} className="ProseMirror" />
     </div>
   );

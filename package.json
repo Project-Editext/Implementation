@@ -12,6 +12,7 @@
     "@clerk/nextjs": "^6.20.0",
     "@heroicons/react": "^2.2.0",
     "@popperjs/core": "^2.11.8",
+    "@tiptap/extension-collaboration-cursor": "^2.14.0",
     "@tiptap/extension-placeholder": "^2.14.0",
     "@tiptap/extension-text-align": "^2.14.0",
     "@tiptap/extension-underline": "^2.14.0",
@@ -22,7 +23,8 @@
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tiptap": "^0.15.0"
+    "tiptap": "^0.15.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

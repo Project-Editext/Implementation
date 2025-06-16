@@ -31,13 +31,11 @@ export async function GET(req, context) {
 
 export async function PUT(req, { params }) {
   try {
-    await connectToDB();
     const body = await req.json();
-    const { title, content } = body;
-
     const updatedFields = {};
-    if (title !== undefined) updatedFields.title = title;
-    if (content !== undefined) updatedFields.content = content;
+
+    if (body.title) updatedFields.title = body.title;
+    if (body.content) updatedFields.content = body.content;
 
     const updatedDoc = await Document.findByIdAndUpdate(
       params.id,
@@ -45,11 +43,15 @@ export async function PUT(req, { params }) {
       { new: true }
     );
 
-    return NextResponse.json(updatedDoc);
-  } catch (err) {
-    return new NextResponse("Failed to update document", { status: 500 });
+    return new Response(JSON.stringify(updatedDoc), {
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Update error:", error);
+    return new Response("Error updating document", { status: 500 });
   }
 }
+
 
 // DELETE: Delete a document by ID
 export async function DELETE(req, { params }) {

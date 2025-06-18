@@ -4,10 +4,29 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 import templateMap from "@/lib/templateMap";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import clerk from "@clerk/clerk-sdk-node";
+
+// Helper function to check access
+async function hasAccess(doc, userId) {
+  if (!userId) return false;
+  if (doc.userId === userId) return true;
+
+  try {
+    const user = await clerk.users.getUser(userId);
+    const email = user?.emailAddresses?.[0]?.emailAddress;
+    return doc.sharedWith.includes(email);
+  } catch (err) {
+    console.error("Error while checking access:", err);
+    return false;
+  }
+}
 
 export async function GET(req, context) {
   try {
     await connectToDB();
+
+    const { userId } = await auth();
 
     const { id } = await context.params;
     const doc = await Document.findById(id);
@@ -17,6 +36,10 @@ export async function GET(req, context) {
         { message: "Document not found" },
         { status: 404 }
       );
+    }
+
+    if (!(await hasAccess(doc, userId))) {
+      return NextResponse.json({ message: "Access denied" }, { status: 403 });
     }
 
     return NextResponse.json(doc);
@@ -29,8 +52,22 @@ export async function GET(req, context) {
   }
 }
 
-export async function PUT(req, { params }) {
+export async function PUT(req, context) {
   try {
+    await connectToDB();
+
+    const { params } = context;
+    const { userId } = await auth();
+
+    const doc = await Document.findById(params.id);
+    if (!doc) {
+      return new Response("Document not found", { status: 404 });
+    }
+
+    if (!(await hasAccess(doc, userId))) {
+      return new Response("Access denied", { status: 403 });
+    }
+
     const body = await req.json();
     const updatedFields = {};
 
@@ -53,18 +90,31 @@ export async function PUT(req, { params }) {
 }
 
 
+
 // DELETE: Delete a document by ID
 export async function DELETE(req, { params }) {
   try {
     await connectToDB();
+    const { userId } = await auth();
 
-    const deletedDoc = await Document.findByIdAndDelete(params.id);
-    if (!deletedDoc) {
+    const doc = await Document.findById(params.id);
+    if (!doc) {
       return NextResponse.json(
         { message: "Document not found" },
         { status: 404 }
       );
     }
+
+      // Only the owner can delete
+      if (doc.userId !== userId) {
+      return NextResponse.json(
+        { message: "Access denied: not the owner" },
+        { status: 403 }
+      );
+    }
+
+    await Document.findByIdAndDelete(params.id);
+
 
     return NextResponse.json({ message: "Document deleted successfully" });
   } catch (err) {
@@ -75,8 +125,9 @@ export async function DELETE(req, { params }) {
 export async function POST(req) {
   try {
     await connectToDB();
-    const { userId } = auth();
-    const { title, template } = await req.json();
+    const { userId } = await auth();
+
+    const { title, template, sharedWith } = await req.json();
 
     const content = templateMap[template]?.content || "";
 
@@ -84,6 +135,7 @@ export async function POST(req) {
       title: title || "Untitled",
       content,
       userId,
+      sharedWith: Array.isArray(sharedWith) ? sharedWith : [],
     });
 
     return NextResponse.json(doc, { status: 201 });

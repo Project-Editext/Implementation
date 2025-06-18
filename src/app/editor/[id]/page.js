@@ -19,6 +19,13 @@ export default function EditorPage() {
   const [title, setTitle] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isSharedUser, setIsSharedUser] = useState(false);
+
+
+  // states for share modal and email input
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -40,6 +47,7 @@ export default function EditorPage() {
         body: JSON.stringify({ content: updatedContent }),
       });
     },
+    immediatelyRender: false,
   });
 
   const handleSaveTitle = async () => {
@@ -78,6 +86,11 @@ export default function EditorPage() {
         setContent(initialContent);
         setTitle(data.title || "Untitled");
         setIsOwner(data.userId === user?.id);
+        const email = user?.primaryEmailAddress?.emailAddress;
+        if (email && data.sharedWith?.includes(email)) {
+          setIsSharedUser(true);
+        }
+
         editor?.commands.setContent(initialContent);
       }
     }
@@ -109,7 +122,7 @@ export default function EditorPage() {
           </h2>
         )}
 
-        {isOwner && (
+        {(isOwner || isSharedUser) && ( // show buttons to BOTH owners and shared users
           <div className="flex gap-2">
             {isEditingTitle ? (
               <button onClick={handleSaveTitle} className="btn-primary">
@@ -123,7 +136,21 @@ export default function EditorPage() {
                 Rename
               </button>
             )}
-            <button onClick={handleDelete} className="btn-danger">
+              <button
+                onClick={() => {                  
+                  setShowShareModal(true)
+                }
+                  
+                }
+                className="btn-secondary"
+              >
+                Share
+              </button>
+            <button onClick={handleDelete}
+              className={`btn-danger ${!isOwner ? "opacity-50 cursor-not-allowed" : ""}`} // shared users cannot delete
+              disabled={!isOwner}
+
+            >
               Delete
             </button>
           </div>
@@ -161,6 +188,55 @@ export default function EditorPage() {
       </div>
 
       <EditorContent editor={editor} className="ProseMirror" />
+  
+      {showShareModal && (
+        <div className="modal-backdrop">
+          <div className="custom-modal">
+            <h3 className="modal-title">Share Document</h3>
+            <p className="modal-text">Enter an email address to share this document:</p>
+
+            <input
+              type="email"
+              id="share-email"
+              name="shareEmail"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              placeholder="user@example.com"
+              className="modal-input"
+            />
+
+            {shareMessage && <p className="modal-message">{shareMessage}</p>}
+
+            <div className="modal-actions">
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  const res = await fetch(`/api/documents/${documentId}/share`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: shareEmail }),
+                  });
+
+                  const data = await res.json();
+                  if (res.ok) {
+                    setShareMessage("Shared successfully!");
+                    setShareEmail("");
+                  } else {
+                    setShareMessage("Error: " + data.message);
+                  }
+                }}
+              >
+                Share
+              </button>
+              <button onClick={() => setShowShareModal(false)} className="btn-secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

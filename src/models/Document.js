@@ -10,6 +10,14 @@ const DocumentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  userId: {
+    type: String,
+    required: true,
+  },
+  sharedWith: {
+    type: [String], // list of shared user emails
+    default: [], //none by default
+  },
 });
 
 export default mongoose.models.Document ||

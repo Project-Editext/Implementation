@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { SignOutButton } from "@clerk/nextjs";
 import { DocumentIcon } from "@heroicons/react/24/outline";
+
 import {
   ClipboardIcon,
   ClockIcon,
@@ -38,6 +39,15 @@ export default function Dashboard() {
     Journal: BookOpenIcon,
     Calendar: CalendarIcon,
   };
+  const router = useRouter();
+  // Mapping from display label to actual template key used in templateMap
+  const labelToTemplateKey = {
+    Notes: "notes",
+    "TODO List": "to-do list",
+    Data: "data",
+    Journal: "journal",
+    Calendar: "calendar",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -46,9 +56,9 @@ export default function Dashboard() {
         <div className="container-fluid d-flex justify-between align-items-center">
           <div className="d-flex align-items-center gap-3">
             <Link href="/" aria-label="Go to homepage">
-              <Image 
-                className="logo me-2" 
-                src="/assets/img/logo.png" 
+              <Image
+                className="logo me-2"
+                src="/assets/img/logo.png"
                 alt="Company Logo"
                 width={40}
                 height={40}
@@ -64,7 +74,6 @@ export default function Dashboard() {
               className="form-control form-control-sm w-50"
             />
             <UserButton afterSignOutUrl="/#portfolio" />
-            
           </div>
         </div>
       </header>
@@ -90,6 +99,26 @@ export default function Dashboard() {
           {Object.entries(templateIcons).map(([label, Icon]) => (
             <div
               key={label}
+              onClick={async () => {
+                const templateKey = labelToTemplateKey[label];
+                const res = await fetch("/api/documents", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    title: `New ${label} Doc`,
+                    template: templateKey,
+                  }),
+                });
+
+                const data = await res.json();
+                if (res.ok && data._id) {
+                  router.push(`/editor/${data._id}`);
+                } else {
+                  alert("Failed to create document.");
+                }
+              }}
               className="bg-yellow-100 hover:bg-yellow-200 p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center"
             >
               <Icon className="h-8 w-8 text-yellow-700 mb-2" />

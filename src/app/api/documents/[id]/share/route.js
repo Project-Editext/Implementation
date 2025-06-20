@@ -4,12 +4,12 @@ import { auth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 
-export async function POST(req, context) {
+export async function POST(request) {
   try {
     await connectToDB();
     const { userId } = await auth();
-    const { email } = await req.json();
-    const { id } = context.params;
+    const id = request.url.split('/').slice(-2, -1)[0];
+    const { email } = await request.json();
 
     const doc = await Document.findById(id);
     if (!doc) {

@@ -9,6 +9,8 @@ import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
+// import Image from "@tiptap/extension-image";
+
 
 export default function EditorPage() {
   const { id: documentId } = useParams();

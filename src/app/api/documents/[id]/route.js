@@ -1,9 +1,7 @@
 // src/app/api/documents/[id]/route.js
-// this route dynamically fetches an existing document by its id
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
-import templateMap from "@/lib/templateMap";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import clerk from "@clerk/clerk-sdk-node";
 
@@ -22,15 +20,15 @@ async function hasAccess(doc, userId) {
   }
 }
 
-export async function GET(req, context) {
+export async function GET(request) {
   try {
     await connectToDB();
-
     const { userId } = await auth();
-
-    const { id } = await context.params;
+    
+    // Extract id from URL path
+    const id = request.url.split('/').pop();
+    
     const doc = await Document.findById(id);
-
     if (!doc) {
       return NextResponse.json(
         { message: "Document not found" },
@@ -42,7 +40,15 @@ export async function GET(req, context) {
       return NextResponse.json({ message: "Access denied" }, { status: 403 });
     }
 
-    return NextResponse.json(doc);
+    // Return the document in the expected structure
+    return NextResponse.json({
+      _id: doc._id,
+      title: doc.title,
+      content: doc.content,
+      userId: doc.userId,
+      sharedWith: doc.sharedWith,
+      createdAt: doc.createdAt,
+    });
   } catch (error) {
     console.error("Error fetching document by ID:", error);
     return NextResponse.json(
@@ -52,14 +58,15 @@ export async function GET(req, context) {
   }
 }
 
-export async function PUT(req, context) {
+export async function PUT(request) {
   try {
     await connectToDB();
-
-    const { params } = context;
     const { userId } = await auth();
-
-    const doc = await Document.findById(params.id);
+    
+    // Extract id from URL path
+    const id = request.url.split('/').pop();
+    
+    const doc = await Document.findById(id);
     if (!doc) {
       return new Response("Document not found", { status: 404 });
     }
@@ -68,20 +75,29 @@ export async function PUT(req, context) {
       return new Response("Access denied", { status: 403 });
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const updatedFields = {};
 
     if (body.title) updatedFields.title = body.title;
     if (body.content) updatedFields.content = body.content;
 
     const updatedDoc = await Document.findByIdAndUpdate(
-      params.id,
+      id,
       updatedFields,
       { new: true }
     );
 
-    return new Response(JSON.stringify(updatedDoc), {
+    // Return the updated document in the expected structure
+    return new Response(JSON.stringify({
+      _id: updatedDoc._id,
+      title: updatedDoc.title,
+      content: updatedDoc.content,
+      userId: updatedDoc.userId,
+      sharedWith: updatedDoc.sharedWith,
+      createdAt: updatedDoc.createdAt,
+    }), {
       status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error("Update error:", error);
@@ -89,15 +105,16 @@ export async function PUT(req, context) {
   }
 }
 
-
-
 // DELETE: Delete a document by ID
-export async function DELETE(req, { params }) {
+export async function DELETE(request) {
   try {
     await connectToDB();
     const { userId } = await auth();
-
-    const doc = await Document.findById(params.id);
+    
+    // Extract id from URL path
+    const id = request.url.split('/').pop();
+    
+    const doc = await Document.findById(id);
     if (!doc) {
       return NextResponse.json(
         { message: "Document not found" },
@@ -105,44 +122,19 @@ export async function DELETE(req, { params }) {
       );
     }
 
-      // Only the owner can delete
-      if (doc.userId !== userId) {
+    if (doc.userId !== userId) {
       return NextResponse.json(
         { message: "Access denied: not the owner" },
         { status: 403 }
       );
     }
 
-    await Document.findByIdAndDelete(params.id);
-
-
+    await Document.findByIdAndDelete(id);
     return NextResponse.json({ message: "Document deleted successfully" });
   } catch (err) {
     console.error("Error deleting document:", err);
-    return new NextResponse("Failed to delete document", { status: 500 });
-  }
-}
-export async function POST(req) {
-  try {
-    await connectToDB();
-    const { userId } = await auth();
-
-    const { title, template, sharedWith } = await req.json();
-
-    const content = templateMap[template]?.content || "";
-
-    const doc = await Document.create({
-      title: title || "Untitled",
-      content,
-      userId,
-      sharedWith: Array.isArray(sharedWith) ? sharedWith : [],
-    });
-
-    return NextResponse.json(doc, { status: 201 });
-  } catch (err) {
-    console.error("Error creating document:", err);
     return NextResponse.json(
-      { message: "Failed to create document", error: err.message },
+      { message: "Failed to delete document", error: err.message },
       { status: 500 }
     );
   }

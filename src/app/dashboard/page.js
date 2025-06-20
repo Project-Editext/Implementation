@@ -1,13 +1,10 @@
 "use client";
-import Header from "@/components/Header";
+import "/public/css/globals.css";
 import Image from "next/image";
-
-import "./globals.css";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { SignOutButton } from "@clerk/nextjs";
 import { DocumentIcon } from "@heroicons/react/24/outline";
 
 import {
@@ -71,7 +68,7 @@ export default function Dashboard() {
             <input
               type="text"
               placeholder="Search For a File"
-              className="form-control form-control-sm w-50"
+              className="form-control form-control-sm"
             />
             <UserButton afterSignOutUrl="/#portfolio" />
           </div>

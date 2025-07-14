@@ -9,8 +9,8 @@ import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
-// import Image from "@tiptap/extension-image";
 
+// import Image from "@tiptap/extension-image";
 
 export default function EditorPage() {
   const { id: documentId } = useParams();
@@ -43,15 +43,15 @@ export default function EditorPage() {
     content,
     onUpdate: ({ editor }) => {
       if (!documentId) return;
-      
+
       // Update save status
       setSaveStatus("saving");
-      
+
       // Clear any previous timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      
+
       // Set a new timeout to actually save
       saveTimeoutRef.current = setTimeout(async () => {
         try {
@@ -61,7 +61,7 @@ export default function EditorPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ content: updatedContent }),
           });
-          
+
           if (res.ok) {
             setSaveStatus("saved");
             // Clear saved status after 2 seconds
@@ -118,6 +118,39 @@ export default function EditorPage() {
       setSaveStatus("error");
     }
   };
+  //handleExport
+  const handleExport = async (type) => {
+    const fileName = title || documentId || "document";
+    const element = document.querySelector(".ProseMirror");
+
+    if (!element) {
+      alert("No content found to export.");
+      return;
+    }
+
+    if (type === "pdf") {
+      const html2pdf = (await import("html2pdf.js")).default;
+
+      html2pdf()
+        .set({
+          margin: 10,
+          filename: `${fileName}.pdf`,
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(element)
+        .save();
+    } else if (type === "txt") {
+      const text = element.innerText;
+      const blob = new Blob([text], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${fileName}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   useEffect(() => {
     async function loadContent() {
@@ -147,7 +180,7 @@ export default function EditorPage() {
       }
     }
     loadContent();
-    
+
     // Clean up timeout on unmount
     return () => {
       if (saveTimeoutRef.current) {
@@ -202,11 +235,13 @@ export default function EditorPage() {
       <div className="mb-4">
         {/* Status indicator above title */}
         <div className="flex justify-end mb-1">
-          <div className={`text-sm ${getStatusColor()} transition-opacity duration-300`}>
+          <div
+            className={`text-sm ${getStatusColor()} transition-opacity duration-300`}
+          >
             {getStatusText()}
           </div>
         </div>
-        
+
         {/* Title with underline */}
         <div className="border-b border-gray-300 pb-2 mb-4">
           {isEditingTitle ? (
@@ -220,7 +255,7 @@ export default function EditorPage() {
               <button onClick={handleSaveTitle} className="btn-primary">
                 Save
               </button>
-              <button 
+              <button
                 onClick={() => setIsEditingTitle(false)}
                 className="btn-secondary"
               >
@@ -228,7 +263,7 @@ export default function EditorPage() {
               </button>
             </div>
           ) : (
-            <h2 
+            <h2
               className="editor-title cursor-pointer"
               onClick={() => setIsEditingTitle(true)}
             >
@@ -236,7 +271,7 @@ export default function EditorPage() {
             </h2>
           )}
         </div>
-        
+
         {/* Action buttons */}
         {(isOwner || isSharedUser) && (
           <div className="flex gap-2 mb-4">
@@ -252,15 +287,32 @@ export default function EditorPage() {
             >
               Share
             </button>
-            <button 
+            <button
               onClick={handleDelete}
-              className={`btn-danger ${!isOwner ? "opacity-50 cursor-not-allowed" : ""}`} 
+              className={`btn-danger ${
+                !isOwner ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               disabled={!isOwner}
             >
               Delete
             </button>
           </div>
         )}
+        {/* export button */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleExport("pdf")}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Export as PDF
+          </button>
+          <button
+            onClick={() => handleExport("txt")}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          >
+            Export as TXT
+          </button>
+        </div>
       </div>
 
       <div className="editor-toolbar">
@@ -294,12 +346,14 @@ export default function EditorPage() {
       </div>
 
       <EditorContent editor={editor} className="ProseMirror" />
-  
+
       {showShareModal && (
         <div className="modal-backdrop">
           <div className="custom-modal">
             <h3 className="modal-title">Share Document</h3>
-            <p className="modal-text">Enter an email address to share this document:</p>
+            <p className="modal-text">
+              Enter an email address to share this document:
+            </p>
 
             <input
               type="email"
@@ -317,11 +371,14 @@ export default function EditorPage() {
               <button
                 className="btn-primary"
                 onClick={async () => {
-                  const res = await fetch(`/api/documents/${documentId}/share`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: shareEmail }),
-                  });
+                  const res = await fetch(
+                    `/api/documents/${documentId}/share`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email: shareEmail }),
+                    }
+                  );
 
                   const data = await res.json();
                   if (res.ok) {
@@ -334,7 +391,10 @@ export default function EditorPage() {
               >
                 Share
               </button>
-              <button onClick={() => setShowShareModal(false)} className="btn-secondary">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="btn-secondary"
+              >
                 Cancel
               </button>
             </div>

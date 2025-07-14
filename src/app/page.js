@@ -43,12 +43,14 @@ export default function LandingPage() {
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="btn btn-light btn-xl">Sign In to Get Started</button>
+              <button className="btn btn-light btn-xl">
+                Sign In to Get Started
+              </button>
             </SignInButton>
           </SignedOut>
         </div>
       </header>
-      
+
       {/* Rest of your content remains the same */}
       <section className="page-section bg-light mb-0" id="about">
         <div className="container">

@@ -9,7 +9,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
-
+import Comment from "@/components/Comment";
 // import Image from "@tiptap/extension-image";
 
 export default function EditorPage() {
@@ -29,7 +29,7 @@ export default function EditorPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareMessage, setShareMessage] = useState("");
-
+  const [comments, setComments] = useState([]); //comments
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: true }),
@@ -39,6 +39,7 @@ export default function EditorPage() {
         placeholder: "Start typing here...",
         emptyEditorClass: "is-editor-empty",
       }),
+      Comment,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -344,8 +345,43 @@ export default function EditorPage() {
           </button>
         ))}
       </div>
+      <button
+        className="toolbar-btn"
+        onClick={() => {
+          const commentText = prompt("Enter your comment:");
+          if (!commentText) return;
 
+          const id = crypto.randomUUID(); // unique comment id
+
+          editor.chain().focus().addComment({ id, content: commentText }).run();
+
+          // Store the comment in state or database
+          setComments((prev) => [...prev, { id, text: commentText }]);
+        }}
+      >
+        Comment
+      </button>
       <EditorContent editor={editor} className="ProseMirror" />
+      <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
+        <h4 className="font-bold mb-2">Comments</h4>
+        {comments.map((c) => (
+          <div key={c.id} className="mb-3">
+            <p className="text-sm">{c.text}</p>
+            <button
+              className="text-xs text-red-500"
+              onClick={() => {
+                /* delete editor highlight */
+                editor.chain().focus().removeComment(c.id).run();
+
+                /* delete state  */
+                setComments((prev) => prev.filter((x) => x.id !== c.id));
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
 
       {showShareModal && (
         <div className="modal-backdrop">

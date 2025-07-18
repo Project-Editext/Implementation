@@ -14,6 +14,7 @@ const DocumentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
   sharedWith: [
     {
       user: { type: String, required: true }, // email or userId
@@ -24,6 +25,12 @@ const DocumentSchema = new mongoose.Schema({
         required: true,
       },
     }
+  ],
+  comments: [
+    {
+      id: String,
+      text: String,
+    },
   ],
 });
 

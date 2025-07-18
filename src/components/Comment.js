@@ -50,6 +50,27 @@ const Comment = Mark.create({
           if (changed && dispatch) dispatch(tr);
           return changed;
         },
+
+      updateComment:
+        (id, newContent) =>
+        ({ state, tr, dispatch }) => {
+          let changed = false;
+          state.doc.descendants((node, pos) => {
+            node.marks.forEach((mark) => {
+              if (mark.type.name === "comment" && mark.attrs.id === id) {
+                const newMark = mark.type.create({
+                  ...mark.attrs,
+                  content: newContent,
+                });
+                tr.removeMark(pos, pos + node.nodeSize, mark.type);
+                tr.addMark(pos, pos + node.nodeSize, newMark);
+                changed = true;
+              }
+            });
+          });
+          if (changed && dispatch) dispatch(tr);
+          return changed;
+        },
     };
   },
 });

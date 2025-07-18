@@ -1,5 +1,5 @@
 "use client";
-
+import { io } from "socket.io-client";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -10,6 +10,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
 import Comment from "@/components/Comment";
+import Collaborators from "@/components/Collaborators";
 // import Image from "@tiptap/extension-image";
 
 export default function EditorPage() {
@@ -32,7 +33,46 @@ export default function EditorPage() {
   const [shareEmail, setShareEmail] = useState("");
   const [shareMessage, setShareMessage] = useState("");
   const [comments, setComments] = useState([]); //comments
+
   const [shareAccess, setShareAccess] = useState("view"); // share state
+
+  //avatar
+  const [collaborators, setCollaborators] = useState([]);
+  const socketRef = useRef(null);
+  useEffect(() => {
+    if (!user || !documentId) return;
+
+    const socket = io("https://socket-server-eo5i.onrender.com");
+
+    socketRef.current = socket;
+
+    socket.emit("join-document", {
+      docId: documentId,
+      user: {
+        name: user.fullName,
+        avatar: user.imageUrl,
+      },
+    });
+
+    socket.on("users-updated", (users) => {
+      setCollaborators(users);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user, documentId]);
+  //word count
+  const [wordCount, setWordCount] = useState(null);
+
+  const handleWordCount = () => {
+    if (!editor) return;
+    const plainText = editor.getText();
+    const count = plainText.trim().split(/\s+/).filter(Boolean).length;
+    setWordCount(count);
+  };
+
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: true }),
@@ -66,14 +106,19 @@ export default function EditorPage() {
       saveTimeoutRef.current = setTimeout(async () => {
         try {
           const updatedContent = editor.getHTML();
+          const updatedComments = extractCommentsFromDoc(editor.state.doc); //updatedComments
           const res = await fetch(`/api/documents/${documentId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: updatedContent }),
+            body: JSON.stringify({
+              content: updatedContent,
+              comments: updatedComments,
+            }),
           });
 
           if (res.ok) {
             setSaveStatus("saved");
+
             // Clear saved status after 2 seconds
             setTimeout(() => setSaveStatus("idle"), 2000);
           } else {
@@ -161,7 +206,24 @@ export default function EditorPage() {
       document.body.removeChild(link);
     }
   };
+  // fetch comment mark from doc
+  function extractCommentsFromDoc(doc) {
+    const commentMap = new Map();
 
+    doc.descendants((node) => {
+      node.marks?.forEach((mark) => {
+        if (
+          mark.type.name === "comment" &&
+          mark.attrs?.id &&
+          mark.attrs?.content
+        ) {
+          commentMap.set(mark.attrs.id, mark.attrs.content);
+        }
+      });
+    });
+
+    return Array.from(commentMap.entries()).map(([id, text]) => ({ id, text }));
+  }
   useEffect(() => {
     async function loadContent() {
       if (!documentId) return;
@@ -213,6 +275,15 @@ export default function EditorPage() {
     }
   }, [editor, content]);
 
+  // When the editor is ready, extract all comment marks from the document
+  // and populate the right-hand comment list (sidebar)
+  useEffect(() => {
+    if (editor && content) {
+      const extracted = extractCommentsFromDoc(editor.state.doc);
+      setComments(extracted);
+    }
+  }, [editor, content]);
+
   // Status indicator text
   const getStatusText = () => {
     switch (saveStatus) {
@@ -253,6 +324,20 @@ export default function EditorPage() {
 
   return (
     <div className="editor-container">
+      <div className="mt-4 flex justify-between">
+        <Collaborators users={collaborators} />
+        {editor && (
+          <button
+            onClick={handleWordCount}
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+          >
+            {wordCount !== null
+              ? `${wordCount} word${wordCount !== 1 ? "s" : ""}`
+              : "Word Count"}
+          </button>
+        )}
+      </div>
+
       <div className="mb-4">
         {/* Status indicator above title */}
         <div className="flex justify-end mb-1">
@@ -371,6 +456,7 @@ export default function EditorPage() {
         </div>
       </div>
 
+
     {accessLevel !== 'view' && (
       <>
         <div className="editor-toolbar">
@@ -402,6 +488,7 @@ export default function EditorPage() {
             </button>
           ))}
         </div>
+
         <button
           className="toolbar-btn"
           onClick={() => {
@@ -418,31 +505,43 @@ export default function EditorPage() {
         >
           Comment
         </button>
-
+  
+        {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
         <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
           <h4 className="font-bold mb-2">Comments</h4>
           {comments.map((c) => (
             <div key={c.id} className="mb-3">
-              <p className="text-sm">{c.text}</p>
-              <button
-                className="text-xs text-red-500"
-                onClick={() => {
-                  /* delete editor highlight */
-                  editor.chain().focus().removeComment(c.id).run();
-
-                  /* delete state  */
-                  setComments((prev) => prev.filter((x) => x.id !== c.id));
+              <textarea
+                className="text-sm w-full p-1 border rounded"
+                value={c.text}
+                onChange={(e) => {
+                  const newText = e.target.value;
+                  editor.commands.updateComment(c.id, newText);
+                  // update status
+                  setComments((prev) =>
+                    prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))
+                  );
                 }}
-              >
-                Delete
-              </button>
+              />
+              <div className="flex justify-between mt-1">
+                <button
+                  className="text-xs text-red-500"
+                  onClick={() => {
+                    editor.chain().focus().removeComment(c.id).run();
+                    setComments((prev) => prev.filter((x) => x.id !== c.id));
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
-      </>
+    </>
     )}
 
 <EditorContent editor={editor} className="ProseMirror" />
+
 
       {showShareModal && (
         <div className="modal-backdrop">

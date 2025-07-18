@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 import templateMap from "@/lib/templateMap";
+import { auth } from "@clerk/nextjs/server";
+import {clerkClient} from "@clerk/clerk-sdk-node";
 
 
 // Helper function to check access
@@ -12,7 +14,7 @@ async function hasAccess(doc, userId, type = 'view') {
   if (doc.userId === userId) return true;
 
   try {
-    const user = await clerk.users.getUser(userId);
+    const user = await clerkClient.users.getUser(userId);
     const email = user?.emailAddresses?.[0]?.emailAddress;
 
     const entry = doc.sharedWith.find(
@@ -51,16 +53,17 @@ export async function GET(request, context) {
   }
 }
 
-export async function PUT(req, { params }) {
+export async function PUT(req, context) {
+  const { params } = await context;
   try {
 
     await connectToDB();
     const { userId } = await auth();
     
     // Extract id from URL path
-    const id = request.url.split('/').pop();
+    //const id = req.url.split('/').pop();
     
-    const doc = await Document.findById(id);
+    const doc = await Document.findById(params.id);
     if (!doc) {
       return new Response("Document not found", { status: 404 });
     }

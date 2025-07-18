@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { Clerk } from "@clerk/clerk-sdk-node";
+//import { Clerk } from "@clerk/clerk-sdk-node";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 
-const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
+//const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export async function POST(request) {
   try {

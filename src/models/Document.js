@@ -14,10 +14,17 @@ const DocumentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  sharedWith: {
-    type: [String], // list of shared user emails
-    default: [], //none by default
-  },
+  sharedWith: [
+    {
+      user: { type: String, required: true }, // email or userId
+      access: {
+        type: String,
+        enum: ['view', 'edit'],
+        default: 'view',
+        required: true,
+      },
+    }
+  ],
 });
 
 export default mongoose.models.Document ||

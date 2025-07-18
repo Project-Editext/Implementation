@@ -24,12 +24,15 @@ export default function EditorPage() {
   const [isSharedUser, setIsSharedUser] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // 'idle', 'saving', 'saved', 'error'
   const saveTimeoutRef = useRef(null);
+  const [accessLevel, setAccessLevel] = useState(null);
+
 
   // states for share modal and email input
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareMessage, setShareMessage] = useState("");
   const [comments, setComments] = useState([]); //comments
+  const [shareAccess, setShareAccess] = useState("view"); // share state
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ history: true }),
@@ -42,8 +45,14 @@ export default function EditorPage() {
       Comment,
     ],
     content,
+    editable: accessLevel !== 'view',
     onUpdate: ({ editor }) => {
       if (!documentId) return;
+
+      if (accessLevel === 'view') {
+        // User only has view access, so don't save changes
+        return;
+      }
 
       // Update save status
       setSaveStatus("saving");
@@ -166,8 +175,10 @@ export default function EditorPage() {
           setTitle(data.title || "Untitled");
           setIsOwner(data.userId === user?.id);
           const email = user?.primaryEmailAddress?.emailAddress;
-          if (email && data.sharedWith?.includes(email)) {
+          if (email && data.sharedWith?.some(entry => entry.user === email)) {
             setIsSharedUser(true);
+            const sharedEntry = data.sharedWith.find(entry => entry.user === email);
+            setAccessLevel(sharedEntry?.access);
           }
 
           editor?.commands.setContent(initialContent);
@@ -191,6 +202,12 @@ export default function EditorPage() {
   }, [documentId, editor, user]);
 
   useEffect(() => {
+    if (editor && accessLevel) {
+      editor.setEditable(accessLevel !== "view");
+    }
+  }, [editor, accessLevel]);
+
+  useEffect(() => {
     if (editor && content) {
       editor.commands.setContent(content);
     }
@@ -212,6 +229,8 @@ export default function EditorPage() {
     }
   };
 
+
+
   // Status indicator color
   const getStatusColor = () => {
     switch (saveStatus) {
@@ -231,6 +250,7 @@ export default function EditorPage() {
   if (!user) return <p className="text-center mt-10">You must be signed in.</p>;
   if (!editor) return null;
 
+
   return (
     <div className="editor-container">
       <div className="mb-4">
@@ -242,6 +262,26 @@ export default function EditorPage() {
             {getStatusText()}
           </div>
         </div>
+
+        {/* Show user access banners */}
+        {accessLevel === 'view' && (
+          <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded mb-4">
+            You have view-only access to this document. Editing is disabled.
+          </div>
+        )}
+
+        {accessLevel === 'edit' && (
+          <div className="bg-green-100 text-green-800 px-4 py-2 rounded mb-4">
+            You are a collaborator with edit access. Your changes will be saved automatically.
+          </div>
+        )}
+
+        {isOwner && (
+          <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded mb-4">
+            You are the owner of this document.
+          </div>
+        )}
+        
 
         {/* Title with underline */}
         <div className="border-b border-gray-300 pb-2 mb-4">
@@ -265,8 +305,12 @@ export default function EditorPage() {
             </div>
           ) : (
             <h2
-              className="editor-title cursor-pointer"
-              onClick={() => setIsEditingTitle(true)}
+            className={`editor-title ${accessLevel !== 'view' ? 'cursor-pointer' : ''}`}
+              onClick={() =>{
+                if (accessLevel !== 'view') {
+                  setIsEditingTitle(true);
+                }
+              }}
             >
               {title || "Untitled"}
             </h2>
@@ -276,29 +320,40 @@ export default function EditorPage() {
         {/* Action buttons */}
         {(isOwner || isSharedUser) && (
           <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setIsEditingTitle(true)}
-              className="btn-secondary"
-            >
-              Rename
-            </button>
+            {(isOwner || accessLevel === 'edit') && (
+                <button
+                  onClick={() => setIsEditingTitle(true)}
+                  className="btn-secondary"
+                >
+                  Rename
+                </button>
+                )}
+                
+                {isOwner && (
+                <button
+                  onClick={handleDelete}
+                  className={`btn-danger ${
+                    !isOwner ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  disabled={!isOwner}
+                >
+                  Delete
+                </button>
+            )}
+
+            {(isOwner || accessLevel === 'edit') && (
             <button
               onClick={() => setShowShareModal(true)}
               className="btn-secondary"
             >
               Share
             </button>
-            <button
-              onClick={handleDelete}
-              className={`btn-danger ${
-                !isOwner ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              disabled={!isOwner}
-            >
-              Delete
-            </button>
+            )}
+
           </div>
         )}
+
+
         {/* export button */}
         <div className="flex gap-2">
           <button
@@ -316,72 +371,78 @@ export default function EditorPage() {
         </div>
       </div>
 
-      <div className="editor-toolbar">
-        {[
-          { cmd: "toggleBold", label: "B" },
-          { cmd: "toggleItalic", label: "I" },
-          { cmd: "toggleUnderline", label: "U" },
-          { cmd: "toggleBulletList", label: "• List" },
-          { cmd: "toggleOrderedList", label: "1. List" },
-          { cmd: "setParagraph", label: "P" },
-          { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
-          { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
-          { cmd: "setTextAlign", args: "left", label: "Left" },
-          { cmd: "setTextAlign", args: "center", label: "Center" },
-          { cmd: "setTextAlign", args: "right", label: "Right" },
-          { cmd: "undo", label: "Undo" },
-          { cmd: "redo", label: "Redo" },
-        ].map(({ cmd, label, args }, idx) => (
-          <button
-            key={idx}
-            onClick={() =>
-              args
-                ? editor.chain().focus()[cmd](args).run()
-                : editor.chain().focus()[cmd]().run()
-            }
-            className="toolbar-btn"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <button
-        className="toolbar-btn"
-        onClick={() => {
-          const commentText = prompt("Enter your comment:");
-          if (!commentText) return;
-
-          const id = crypto.randomUUID(); // unique comment id
-
-          editor.chain().focus().addComment({ id, content: commentText }).run();
-
-          // Store the comment in state or database
-          setComments((prev) => [...prev, { id, text: commentText }]);
-        }}
-      >
-        Comment
-      </button>
-      <EditorContent editor={editor} className="ProseMirror" />
-      <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
-        <h4 className="font-bold mb-2">Comments</h4>
-        {comments.map((c) => (
-          <div key={c.id} className="mb-3">
-            <p className="text-sm">{c.text}</p>
+    {accessLevel !== 'view' && (
+      <>
+        <div className="editor-toolbar">
+          {[
+            { cmd: "toggleBold", label: "B" },
+            { cmd: "toggleItalic", label: "I" },
+            { cmd: "toggleUnderline", label: "U" },
+            { cmd: "toggleBulletList", label: "• List" },
+            { cmd: "toggleOrderedList", label: "1. List" },
+            { cmd: "setParagraph", label: "P" },
+            { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
+            { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
+            { cmd: "setTextAlign", args: "left", label: "Left" },
+            { cmd: "setTextAlign", args: "center", label: "Center" },
+            { cmd: "setTextAlign", args: "right", label: "Right" },
+            { cmd: "undo", label: "Undo" },
+            { cmd: "redo", label: "Redo" },
+          ].map(({ cmd, label, args }, idx) => (
             <button
-              className="text-xs text-red-500"
-              onClick={() => {
-                /* delete editor highlight */
-                editor.chain().focus().removeComment(c.id).run();
-
-                /* delete state  */
-                setComments((prev) => prev.filter((x) => x.id !== c.id));
-              }}
+              key={idx}
+              onClick={() =>
+                args
+                  ? editor.chain().focus()[cmd](args).run()
+                  : editor.chain().focus()[cmd]().run()
+              }
+              className="toolbar-btn"
             >
-              Delete
+              {label}
             </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+        <button
+          className="toolbar-btn"
+          onClick={() => {
+            const commentText = prompt("Enter your comment:");
+            if (!commentText) return;
+
+            const id = crypto.randomUUID(); // unique comment id
+
+            editor.chain().focus().addComment({ id, content: commentText }).run();
+
+            // Store the comment in state or database
+            setComments((prev) => [...prev, { id, text: commentText }]);
+          }}
+        >
+          Comment
+        </button>
+
+        <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
+          <h4 className="font-bold mb-2">Comments</h4>
+          {comments.map((c) => (
+            <div key={c.id} className="mb-3">
+              <p className="text-sm">{c.text}</p>
+              <button
+                className="text-xs text-red-500"
+                onClick={() => {
+                  /* delete editor highlight */
+                  editor.chain().focus().removeComment(c.id).run();
+
+                  /* delete state  */
+                  setComments((prev) => prev.filter((x) => x.id !== c.id));
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+
+<EditorContent editor={editor} className="ProseMirror" />
 
       {showShareModal && (
         <div className="modal-backdrop">
@@ -401,6 +462,15 @@ export default function EditorPage() {
               className="modal-input"
             />
 
+            <select
+              value={shareAccess}
+              onChange={(e) => setShareAccess(e.target.value)}
+              className="modal-input"
+            >
+              <option value="view">View Only</option>
+              <option value="edit">Can Edit</option>
+            </select>
+
             {shareMessage && <p className="modal-message">{shareMessage}</p>}
 
             <div className="modal-actions">
@@ -412,7 +482,10 @@ export default function EditorPage() {
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email: shareEmail }),
+                      body: JSON.stringify({
+                        email: shareEmail,
+                        access: shareAccess,
+                      }),
                     }
                   );
 

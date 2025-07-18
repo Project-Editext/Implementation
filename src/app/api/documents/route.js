@@ -18,7 +18,7 @@ export async function GET() {
     const query = [{ userId }];
     
     if (email)
-      query.push({ sharedWith: email });
+      query.push({ "sharedWith.user": email });
 
     const docs = await Document.find({ $or: query }).sort({ createdAt: -1 });
 

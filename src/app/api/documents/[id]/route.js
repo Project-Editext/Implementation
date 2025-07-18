@@ -6,14 +6,19 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import clerk from "@clerk/clerk-sdk-node";
 
 // Helper function to check access
-async function hasAccess(doc, userId) {
+async function hasAccess(doc, userId, type = 'view') {
   if (!userId) return false;
   if (doc.userId === userId) return true;
 
   try {
     const user = await clerk.users.getUser(userId);
     const email = user?.emailAddresses?.[0]?.emailAddress;
-    return doc.sharedWith.includes(email);
+
+    const entry = doc.sharedWith.find(
+      (entry) => entry.user === email && (entry.access === type || entry.access === 'edit')
+    );
+
+    return !!entry;
   } catch (err) {
     console.error("Error while checking access:", err);
     return false;
@@ -71,7 +76,7 @@ export async function PUT(request) {
       return new Response("Document not found", { status: 404 });
     }
 
-    if (!(await hasAccess(doc, userId))) {
+    if (!(await hasAccess(doc, userId, 'edit'))) {
       return new Response("Access denied", { status: 403 });
     }
 

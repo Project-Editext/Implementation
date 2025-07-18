@@ -1,3 +1,4 @@
+//src/app/editor/[id]/page.js
 "use client";
 import { io } from "socket.io-client";
 import { useEffect, useState, useRef } from "react";
@@ -11,6 +12,7 @@ import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
 import Comment from "@/components/Comment";
 import Collaborators from "@/components/Collaborators";
+import AIChatPopup from '@/components/AIChatPopup';
 // import Image from "@tiptap/extension-image";
 
 export default function EditorPage() {
@@ -39,6 +41,10 @@ export default function EditorPage() {
   //avatar
   const [collaborators, setCollaborators] = useState([]);
   const socketRef = useRef(null);
+  //state for AI chat popup
+  const [showChatPopup, setShowChatPopup] = useState(false);
+
+
   useEffect(() => {
     if (!user || !documentId) return;
 
@@ -300,8 +306,6 @@ export default function EditorPage() {
     }
   };
 
-
-
   // Status indicator color
   const getStatusColor = () => {
     switch (saveStatus) {
@@ -320,10 +324,15 @@ export default function EditorPage() {
 
   if (!user) return <p className="text-center mt-10">You must be signed in.</p>;
   if (!editor) return null;
-
+  const getCurrentContent = () => {
+    return editor ? editor.getHTML() : content;
+  };
 
   return (
     <div className="editor-container">
+      {showChatPopup && (
+        <AIChatPopup documentContent={getCurrentContent()} />
+      )}
       <div className="mt-4 flex justify-between">
         <Collaborators users={collaborators} />
         {editor && (
@@ -489,54 +498,63 @@ export default function EditorPage() {
           ))}
         </div>
 
-        <button
-          className="toolbar-btn"
-          onClick={() => {
-            const commentText = prompt("Enter your comment:");
-            if (!commentText) return;
+      {/* AI Assistant button */}
+      <button
+        id="ai-chat-button"
+        onClick={() => setShowChatPopup(!showChatPopup)}
+        className={`toolbar-btn ${showChatPopup ? 'bg-green' : ''}`}
+      >
+        AI Assistant
+      </button>
 
-            const id = crypto.randomUUID(); // unique comment id
+      <button
+        className="toolbar-btn"
+        onClick={() => {
+          const commentText = prompt("Enter your comment:");
+          if (!commentText) return;
 
-            editor.chain().focus().addComment({ id, content: commentText }).run();
+          const id = crypto.randomUUID(); // unique comment id
 
-            // Store the comment in state or database
-            setComments((prev) => [...prev, { id, text: commentText }]);
-          }}
-        >
-          Comment
-        </button>
-  
-        {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
-        <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
-          <h4 className="font-bold mb-2">Comments</h4>
-          {comments.map((c) => (
-            <div key={c.id} className="mb-3">
-              <textarea
-                className="text-sm w-full p-1 border rounded"
-                value={c.text}
-                onChange={(e) => {
-                  const newText = e.target.value;
-                  editor.commands.updateComment(c.id, newText);
-                  // update status
-                  setComments((prev) =>
-                    prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))
-                  );
+          editor.chain().focus().addComment({ id, content: commentText }).run();
+
+          // Store the comment in state or database
+          setComments((prev) => [...prev, { id, text: commentText }]);
+        }}
+      >
+        Comment
+      </button>
+
+      {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
+      <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
+        <h4 className="font-bold mb-2">Comments</h4>
+        {comments.map((c) => (
+          <div key={c.id} className="mb-3">
+            <textarea
+              className="text-sm w-full p-1 border rounded"
+              value={c.text}
+              onChange={(e) => {
+                const newText = e.target.value;
+                editor.commands.updateComment(c.id, newText);
+                // update status
+                setComments((prev) =>
+                  prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))
+                );
+              }}
+            />
+            <div className="flex justify-between mt-1">
+              <button
+                className="text-xs text-red-500"
+                onClick={() => {
+                  editor.chain().focus().removeComment(c.id).run();
+                  setComments((prev) => prev.filter((x) => x.id !== c.id));
                 }}
-              />
-              <div className="flex justify-between mt-1">
-                <button
-                  className="text-xs text-red-500"
-                  onClick={() => {
-                    editor.chain().focus().removeComment(c.id).run();
-                    setComments((prev) => prev.filter((x) => x.id !== c.id));
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
+              >
+                Delete
+              </button>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
     </>
     )}
 

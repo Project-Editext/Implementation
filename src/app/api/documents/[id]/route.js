@@ -36,7 +36,7 @@ export async function PUT(req, { params }) {
 
     if (body.title) updatedFields.title = body.title;
     if (body.content) updatedFields.content = body.content;
-
+    if (body.comments !== undefined) updatedFields.comments = body.comments;
     const updatedDoc = await Document.findByIdAndUpdate(
       params.id,
       updatedFields,
@@ -51,7 +51,6 @@ export async function PUT(req, { params }) {
     return new Response("Error updating document", { status: 500 });
   }
 }
-
 
 // DELETE: Delete a document by ID
 export async function DELETE(req, { params }) {

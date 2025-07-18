@@ -1,16 +1,16 @@
-'use client';
-import { io } from 'socket.io-client';
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Placeholder from '@tiptap/extension-placeholder';
-import { useUser } from '@clerk/nextjs';
-import '../../../../public/css/globals.css';
-import Comment from '@/components/Comment';
-import Collaborators from '@/components/Collaborators';
+"use client";
+import { io } from "socket.io-client";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+import { useUser } from "@clerk/nextjs";
+import "../../../../public/css/globals.css";
+import Comment from "@/components/Comment";
+import Collaborators from "@/components/Collaborators";
 // import Image from "@tiptap/extension-image";
 
 export default function EditorPage() {
@@ -18,31 +18,30 @@ export default function EditorPage() {
   const { user } = useUser();
   const router = useRouter();
 
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [isSharedUser, setIsSharedUser] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
+  const [saveStatus, setSaveStatus] = useState("idle"); // 'idle', 'saving', 'saved', 'error'
   const saveTimeoutRef = useRef(null);
 
   // states for share modal and email input
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareEmail, setShareEmail] = useState('');
-  const [shareMessage, setShareMessage] = useState('');
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
   const [comments, setComments] = useState([]); //comments
   //avatar
   const [collaborators, setCollaborators] = useState([]);
   const socketRef = useRef(null);
   useEffect(() => {
     if (!user || !documentId) return;
- 
-    const socket = io('https://socket-server-eo5i.onrender.com');
-   
+
+    const socket = io("https://socket-server-eo5i.onrender.com");
 
     socketRef.current = socket;
 
-    socket.emit('join-document', {
+    socket.emit("join-document", {
       docId: documentId,
       user: {
         name: user.fullName,
@@ -50,7 +49,7 @@ export default function EditorPage() {
       },
     });
 
-    socket.on('users-updated', (users) => {
+    socket.on("users-updated", (users) => {
       setCollaborators(users);
     });
 
@@ -72,10 +71,10 @@ export default function EditorPage() {
     extensions: [
       StarterKit.configure({ history: true }),
       Underline,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({
-        placeholder: 'Start typing here...',
-        emptyEditorClass: 'is-editor-empty',
+        placeholder: "Start typing here...",
+        emptyEditorClass: "is-editor-empty",
       }),
       Comment,
     ],
@@ -84,7 +83,7 @@ export default function EditorPage() {
       if (!documentId) return;
 
       // Update save status
-      setSaveStatus('saving');
+      setSaveStatus("saving");
 
       // Clear any previous timeout
       if (saveTimeoutRef.current) {
@@ -95,22 +94,26 @@ export default function EditorPage() {
       saveTimeoutRef.current = setTimeout(async () => {
         try {
           const updatedContent = editor.getHTML();
+          const updatedComments = extractCommentsFromDoc(editor.state.doc); //updatedComments
           const res = await fetch(`/api/documents/${documentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: updatedContent }),
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: updatedContent,
+              comments: updatedComments,
+            }),
           });
 
           if (res.ok) {
-            setSaveStatus('saved');
+            setSaveStatus("saved");
             // Clear saved status after 2 seconds
-            setTimeout(() => setSaveStatus('idle'), 2000);
+            setTimeout(() => setSaveStatus("idle"), 2000);
           } else {
-            setSaveStatus('error');
+            setSaveStatus("error");
           }
         } catch (err) {
-          console.error('Error saving document:', err);
-          setSaveStatus('error');
+          console.error("Error saving document:", err);
+          setSaveStatus("error");
         }
       }, 500); // 500ms debounce
     },
@@ -118,71 +121,71 @@ export default function EditorPage() {
   });
 
   const handleSaveTitle = async () => {
-    setSaveStatus('saving');
+    setSaveStatus("saving");
     try {
       await fetch(`/api/documents/${documentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
       });
       setIsEditingTitle(false);
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (err) {
-      console.error('Error saving title:', err);
-      setSaveStatus('error');
+      console.error("Error saving title:", err);
+      setSaveStatus("error");
     }
   };
 
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
-      'Are you sure you want to delete this document?'
+      "Are you sure you want to delete this document?"
     );
     if (!confirmDelete) return;
 
-    setSaveStatus('saving');
+    setSaveStatus("saving");
     try {
       const res = await fetch(`/api/documents/${documentId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push("/dashboard");
       } else {
-        alert('Failed to delete document.');
-        setSaveStatus('idle');
+        alert("Failed to delete document.");
+        setSaveStatus("idle");
       }
     } catch (err) {
-      console.error('Error deleting document:', err);
-      setSaveStatus('error');
+      console.error("Error deleting document:", err);
+      setSaveStatus("error");
     }
   };
   //handleExport
   const handleExport = async (type) => {
-    const fileName = title || documentId || 'document';
-    const element = document.querySelector('.ProseMirror');
+    const fileName = title || documentId || "document";
+    const element = document.querySelector(".ProseMirror");
 
     if (!element) {
-      alert('No content found to export.');
+      alert("No content found to export.");
       return;
     }
 
-    if (type === 'pdf') {
-      const html2pdf = (await import('html2pdf.js')).default;
+    if (type === "pdf") {
+      const html2pdf = (await import("html2pdf.js")).default;
 
       html2pdf()
         .set({
           margin: 10,
           filename: `${fileName}.pdf`,
           html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         })
         .from(element)
         .save();
-    } else if (type === 'txt') {
+    } else if (type === "txt") {
       const text = element.innerText;
-      const blob = new Blob([text], { type: 'text/plain' });
-      const link = document.createElement('a');
+      const blob = new Blob([text], { type: "text/plain" });
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = `${fileName}.txt`;
       document.body.appendChild(link);
@@ -190,18 +193,35 @@ export default function EditorPage() {
       document.body.removeChild(link);
     }
   };
+  // fetch comment mark from doc
+  function extractCommentsFromDoc(doc) {
+    const commentMap = new Map();
 
+    doc.descendants((node) => {
+      node.marks?.forEach((mark) => {
+        if (
+          mark.type.name === "comment" &&
+          mark.attrs?.id &&
+          mark.attrs?.content
+        ) {
+          commentMap.set(mark.attrs.id, mark.attrs.content);
+        }
+      });
+    });
+
+    return Array.from(commentMap.entries()).map(([id, text]) => ({ id, text }));
+  }
   useEffect(() => {
     async function loadContent() {
       if (!documentId) return;
-      setSaveStatus('loading');
+      setSaveStatus("loading");
       try {
         const res = await fetch(`/api/documents/${documentId}`);
         if (res.ok) {
           const data = await res.json();
-          const initialContent = data.content || '';
+          const initialContent = data.content || "";
           setContent(initialContent);
-          setTitle(data.title || 'Untitled');
+          setTitle(data.title || "Untitled");
           setIsOwner(data.userId === user?.id);
           const email = user?.primaryEmailAddress?.emailAddress;
           if (email && data.sharedWith?.includes(email)) {
@@ -209,13 +229,13 @@ export default function EditorPage() {
           }
 
           editor?.commands.setContent(initialContent);
-          setSaveStatus('idle');
+          setSaveStatus("idle");
         } else {
-          setSaveStatus('error');
+          setSaveStatus("error");
         }
       } catch (err) {
-        console.error('Error loading document:', err);
-        setSaveStatus('error');
+        console.error("Error loading document:", err);
+        setSaveStatus("error");
       }
     }
     loadContent();
@@ -234,35 +254,51 @@ export default function EditorPage() {
     }
   }, [editor, content]);
 
+  // When the editor is ready, extract all comment marks from the document
+  // and populate the right-hand comment list (sidebar)
+  useEffect(() => {
+    if (editor && content) {
+      const extracted = extractCommentsFromDoc(editor.state.doc);
+      setComments(extracted);
+    }
+  }, [editor, content]);
+  useEffect(() => {
+    if (!editor) return;
+
+    comments.forEach((c) => {
+      editor.commands.removeComment(c.id);
+      editor.commands.addComment({ id: c.id, content: c.text });
+    });
+  }, [comments, editor]);
   // Status indicator text
   const getStatusText = () => {
     switch (saveStatus) {
-      case 'saving':
-        return 'Saving...';
-      case 'saved':
-        return 'All changes saved';
-      case 'error':
-        return 'Error saving';
-      case 'loading':
-        return 'Loading...';
+      case "saving":
+        return "Saving...";
+      case "saved":
+        return "All changes saved";
+      case "error":
+        return "Error saving";
+      case "loading":
+        return "Loading...";
       default:
-        return '';
+        return "";
     }
   };
 
   // Status indicator color
   const getStatusColor = () => {
     switch (saveStatus) {
-      case 'saving':
-        return 'text-yellow-500';
-      case 'saved':
-        return 'text-green-500';
-      case 'error':
-        return 'text-red-500';
-      case 'loading':
-        return 'text-blue-500';
+      case "saving":
+        return "text-yellow-500";
+      case "saved":
+        return "text-green-500";
+      case "error":
+        return "text-red-500";
+      case "loading":
+        return "text-blue-500";
       default:
-        return 'text-gray-500';
+        return "text-gray-500";
     }
   };
 
@@ -279,8 +315,8 @@ export default function EditorPage() {
             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
           >
             {wordCount !== null
-              ? `${wordCount} word${wordCount !== 1 ? 's' : ''}`
-              : 'Word Count'}
+              ? `${wordCount} word${wordCount !== 1 ? "s" : ""}`
+              : "Word Count"}
           </button>
         )}
       </div>
@@ -320,7 +356,7 @@ export default function EditorPage() {
               className="editor-title cursor-pointer"
               onClick={() => setIsEditingTitle(true)}
             >
-              {title || 'Untitled'}
+              {title || "Untitled"}
             </h2>
           )}
         </div>
@@ -343,7 +379,7 @@ export default function EditorPage() {
             <button
               onClick={handleDelete}
               className={`btn-danger ${
-                !isOwner ? 'opacity-50 cursor-not-allowed' : ''
+                !isOwner ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={!isOwner}
             >
@@ -354,13 +390,13 @@ export default function EditorPage() {
         {/* export button */}
         <div className="flex gap-2">
           <button
-            onClick={() => handleExport('pdf')}
+            onClick={() => handleExport("pdf")}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Export as PDF
           </button>
           <button
-            onClick={() => handleExport('txt')}
+            onClick={() => handleExport("txt")}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Export as TXT
@@ -370,19 +406,19 @@ export default function EditorPage() {
 
       <div className="editor-toolbar">
         {[
-          { cmd: 'toggleBold', label: 'B' },
-          { cmd: 'toggleItalic', label: 'I' },
-          { cmd: 'toggleUnderline', label: 'U' },
-          { cmd: 'toggleBulletList', label: '• List' },
-          { cmd: 'toggleOrderedList', label: '1. List' },
-          { cmd: 'setParagraph', label: 'P' },
-          { cmd: 'toggleHeading', args: { level: 1 }, label: 'H1' },
-          { cmd: 'toggleHeading', args: { level: 2 }, label: 'H2' },
-          { cmd: 'setTextAlign', args: 'left', label: 'Left' },
-          { cmd: 'setTextAlign', args: 'center', label: 'Center' },
-          { cmd: 'setTextAlign', args: 'right', label: 'Right' },
-          { cmd: 'undo', label: 'Undo' },
-          { cmd: 'redo', label: 'Redo' },
+          { cmd: "toggleBold", label: "B" },
+          { cmd: "toggleItalic", label: "I" },
+          { cmd: "toggleUnderline", label: "U" },
+          { cmd: "toggleBulletList", label: "• List" },
+          { cmd: "toggleOrderedList", label: "1. List" },
+          { cmd: "setParagraph", label: "P" },
+          { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
+          { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
+          { cmd: "setTextAlign", args: "left", label: "Left" },
+          { cmd: "setTextAlign", args: "center", label: "Center" },
+          { cmd: "setTextAlign", args: "right", label: "Right" },
+          { cmd: "undo", label: "Undo" },
+          { cmd: "redo", label: "Redo" },
         ].map(({ cmd, label, args }, idx) => (
           <button
             key={idx}
@@ -400,7 +436,7 @@ export default function EditorPage() {
       <button
         className="toolbar-btn"
         onClick={() => {
-          const commentText = prompt('Enter your comment:');
+          const commentText = prompt("Enter your comment:");
           if (!commentText) return;
 
           const id = crypto.randomUUID(); // unique comment id
@@ -418,19 +454,29 @@ export default function EditorPage() {
         <h4 className="font-bold mb-2">Comments</h4>
         {comments.map((c) => (
           <div key={c.id} className="mb-3">
-            <p className="text-sm">{c.text}</p>
-            <button
-              className="text-xs text-red-500"
-              onClick={() => {
-                /* delete editor highlight */
-                editor.chain().focus().removeComment(c.id).run();
+            <textarea
+              className="text-sm w-full p-1 border rounded"
+              value={c.text}
+              onChange={(e) => {
+                const newText = e.target.value;
 
-                /* delete state  */
-                setComments((prev) => prev.filter((x) => x.id !== c.id));
+                // update status
+                setComments((prev) =>
+                  prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))
+                );
               }}
-            >
-              Delete
-            </button>
+            />
+            <div className="flex justify-between mt-1">
+              <button
+                className="text-xs text-red-500"
+                onClick={() => {
+                  editor.chain().focus().removeComment(c.id).run();
+                  setComments((prev) => prev.filter((x) => x.id !== c.id));
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -462,18 +508,18 @@ export default function EditorPage() {
                   const res = await fetch(
                     `/api/documents/${documentId}/share`,
                     {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ email: shareEmail }),
                     }
                   );
 
                   const data = await res.json();
                   if (res.ok) {
-                    setShareMessage('Shared successfully!');
-                    setShareEmail('');
+                    setShareMessage("Shared successfully!");
+                    setShareEmail("");
                   } else {
-                    setShareMessage('Error: ' + data.message);
+                    setShareMessage("Error: " + data.message);
                   }
                 }}
               >

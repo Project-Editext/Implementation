@@ -16,8 +16,15 @@ const DocumentSchema = new mongoose.Schema({
   },
   sharedWith: {
     type: [String], // list of shared user emails
-    default: [], //none by default
+    default: [],
+    //none by default
   },
+  comments: [
+    {
+      id: String,
+      text: String,
+    },
+  ],
 });
 
 export default mongoose.models.Document ||

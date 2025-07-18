@@ -21,6 +21,8 @@
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "bootstrap": "^5.3.6",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "html2pdf.js": "^0.10.3",
     "mongoose": "^8.15.1",
     "next": "^15.4.1",

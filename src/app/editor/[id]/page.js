@@ -37,10 +37,8 @@ export default function EditorPage() {
   useEffect(() => {
     if (!user || !documentId) return;
 
-    // Make sure server is warm
-    fetch('/api/socketio');
+    const socket = io('https://implementation-brown.vercel.app/dashboard');
 
-    const socket = io('/', { path: '/api/socketio' });
     socketRef.current = socket;
 
     socket.emit('join-document', {
@@ -59,6 +57,15 @@ export default function EditorPage() {
       socket.disconnect();
     };
   }, [user, documentId]);
+  //word count
+  const [wordCount, setWordCount] = useState(null);
+
+  const handleWordCount = () => {
+    if (!editor) return;
+    const plainText = editor.getText();
+    const count = plainText.trim().split(/\s+/).filter(Boolean).length;
+    setWordCount(count);
+  };
 
   const editor = useEditor({
     extensions: [
@@ -263,7 +270,20 @@ export default function EditorPage() {
 
   return (
     <div className="editor-container">
+      <div className="mt-4 flex justify-between">
+
       <Collaborators users={collaborators} />
+      {editor && (
+        <button
+          onClick={handleWordCount}
+          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+        >
+          {wordCount !== null
+            ? `${wordCount} word${wordCount !== 1 ? 's' : ''}`
+            : 'Word Count'}
+        </button>
+      )}
+      </div>
 
       <div className="mb-4">
         {/* Status indicator above title */}

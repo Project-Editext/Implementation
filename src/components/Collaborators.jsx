@@ -1,49 +1,21 @@
-import { useEffect, useState, useRef } from 'react';
-import { io } from 'socket.io-client';
-import { useUser } from '@clerk/nextjs';
+'use client';
 
-const socket = io('http://localhost:3001'); // adjust URL for your backend
-
-const Collaborators = ({ documentId }) => {
-  const { user } = useUser();
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    if (!user || !documentId) return;
-
-    socket.emit('join-document', {
-      documentId,
-      name: user.fullName,
-      email: user.primaryEmailAddress.emailAddress,
-      image: user.imageUrl,
-    });
-
-    socket.on('update-user-list', (activeUsers) => {
-      setUsers(activeUsers);
-    });
-
-    return () => {
-      socket.emit('leave-document', {
-        documentId,
-        email: user.primaryEmailAddress.emailAddress,
-      });
-    };
-  }, [user, documentId]);
+export default function Collaborators({ users }) {
+  if (!users || users.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2">
-      {users.map((u) => (
-        <div key={u.email} className="flex items-center">
+    <div className="flex gap-3 items-center mt-4">
+      {users.map((user, index) => (
+        <div key={index} className="flex items-center gap-2">
           <img
-            src={u.avatar || '/default-avatar.png'}
-            alt={u.name}
-            title={u.name}
-            className="w-8 h-8 rounded-full border"
+            src={user.avatar}
+            alt={user.name}
+            className="w-8 h-8 rounded-full border border-gray-300"
           />
+
+          <span className="text-sm text-gray-700">{user.name}</span>
         </div>
       ))}
     </div>
   );
-};
-
-export default Collaborators;
+}

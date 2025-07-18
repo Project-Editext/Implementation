@@ -106,6 +106,7 @@ export default function EditorPage() {
 
           if (res.ok) {
             setSaveStatus("saved");
+
             // Clear saved status after 2 seconds
             setTimeout(() => setSaveStatus("idle"), 2000);
           } else {
@@ -262,14 +263,7 @@ export default function EditorPage() {
       setComments(extracted);
     }
   }, [editor, content]);
-  useEffect(() => {
-    if (!editor) return;
 
-    comments.forEach((c) => {
-      editor.commands.removeComment(c.id);
-      editor.commands.addComment({ id: c.id, content: c.text });
-    });
-  }, [comments, editor]);
   // Status indicator text
   const getStatusText = () => {
     switch (saveStatus) {
@@ -459,7 +453,7 @@ export default function EditorPage() {
               value={c.text}
               onChange={(e) => {
                 const newText = e.target.value;
-
+                editor.commands.updateComment(c.id, newText);
                 // update status
                 setComments((prev) =>
                   prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))

@@ -72,6 +72,27 @@ export default function EditorPage() {
     setWordCount(count);
   };
 
+  const handleDuplicate = async () => {
+    try {
+      const res = await fetch(`/api/documents/${documentId}/duplicate`, {
+        method: "POST",
+      });
+  
+      if (!res.ok) {
+        throw new Error("Failed to duplicate document");
+      }
+  
+      const data = await res.json();
+      const newDocId = data.newDocumentId;
+  
+      // Redirect to the new duplicated document
+      router.push(`/editor/${newDocId}`);
+    } catch (error) {
+      console.error("Duplicate error:", error);
+      alert("Error duplicating document");
+    }
+  };
+
 
   const editor = useEditor({
     extensions: [
@@ -405,6 +426,15 @@ export default function EditorPage() {
         {/* Action buttons */}
         {(isOwner || isSharedUser) && (
           <div className="flex gap-2 mb-4">
+            {(isOwner || accessLevel === 'edit') && (
+              <button
+                onClick={handleDuplicate}
+                className="btn-secondary"
+              >
+                Duplicate
+              </button>
+            )}
+            
             {(isOwner || accessLevel === 'edit') && (
                 <button
                   onClick={() => setIsEditingTitle(true)}

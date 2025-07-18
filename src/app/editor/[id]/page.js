@@ -36,8 +36,9 @@ export default function EditorPage() {
   const socketRef = useRef(null);
   useEffect(() => {
     if (!user || !documentId) return;
-
-    const socket = io('https://implementation-brown.vercel.app/dashboard');
+ 
+    const socket = io('https://socket-server-eo5i.onrender.com');
+   
 
     socketRef.current = socket;
 
@@ -271,18 +272,17 @@ export default function EditorPage() {
   return (
     <div className="editor-container">
       <div className="mt-4 flex justify-between">
-
-      <Collaborators users={collaborators} />
-      {editor && (
-        <button
-          onClick={handleWordCount}
-          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
-        >
-          {wordCount !== null
-            ? `${wordCount} word${wordCount !== 1 ? 's' : ''}`
-            : 'Word Count'}
-        </button>
-      )}
+        <Collaborators users={collaborators} />
+        {editor && (
+          <button
+            onClick={handleWordCount}
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+          >
+            {wordCount !== null
+              ? `${wordCount} word${wordCount !== 1 ? 's' : ''}`
+              : 'Word Count'}
+          </button>
+        )}
       </div>
 
       <div className="mb-4">

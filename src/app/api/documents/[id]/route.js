@@ -5,11 +5,10 @@ import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 import templateMap from "@/lib/templateMap";
 import { auth } from "@clerk/nextjs/server";
-import {clerkClient} from "@clerk/clerk-sdk-node";
-
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 // Helper function to check access
-async function hasAccess(doc, userId, type = 'view') {
+async function hasAccess(doc, userId, type = "view") {
   if (!userId) return false;
   if (doc.userId === userId) return true;
 
@@ -18,7 +17,9 @@ async function hasAccess(doc, userId, type = 'view') {
     const email = user?.emailAddresses?.[0]?.emailAddress;
 
     const entry = doc.sharedWith.find(
-      (entry) => entry.user === email && (entry.access === type || entry.access === 'edit')
+      (entry) =>
+        entry.user === email &&
+        (entry.access === type || entry.access === "edit")
     );
 
     return !!entry;
@@ -27,7 +28,6 @@ async function hasAccess(doc, userId, type = 'view') {
     return false;
   }
 }
-
 
 export async function GET(request, context) {
   try {
@@ -56,38 +56,52 @@ export async function GET(request, context) {
 export async function PUT(req, context) {
   const { params } = await context;
   try {
-
     await connectToDB();
     const { userId } = await auth();
-    
+
     // Extract id from URL path
     //const id = req.url.split('/').pop();
-    
+
     const doc = await Document.findById(params.id);
     if (!doc) {
       return new Response("Document not found", { status: 404 });
     }
 
-    if (!(await hasAccess(doc, userId, 'edit'))) {
+    if (!(await hasAccess(doc, userId, "edit"))) {
       return new Response("Access denied", { status: 403 });
     }
 
     const body = await req.json();
 
     const updatedFields = {};
+    let shouldUpdate = false;
 
-    if (body.title) updatedFields.title = body.title;
-    if (body.content) updatedFields.content = body.content;
-    if (body.comments !== undefined) updatedFields.comments = body.comments;
-    const updatedDoc = await Document.findByIdAndUpdate(
-      params.id,
-      updatedFields,
-      { new: true }
-    );
+    if (body.title && body.title !== doc.title) {
+      updatedFields.title = body.title;
+      shouldUpdate = true;
+    }
+    if (body.content && body.content !== doc.content) {
+      updatedFields.content = body.content;
+      shouldUpdate = true;
+    }
+    if (
+      body.comments !== undefined &&
+      JSON.stringify(body.comments) !== JSON.stringify(doc.comments)
+    ) {
+      updatedFields.comments = body.comments;
+      shouldUpdate = true;
+    }
 
-    return new Response(JSON.stringify(updatedDoc), {
-      status: 200,
-    });
+    if (shouldUpdate) {
+      const updatedDoc = await Document.findByIdAndUpdate(
+        params.id,
+        updatedFields,
+        { new: true }
+      );
+      return new Response(JSON.stringify(updatedDoc), { status: 200 });
+    } else {
+      return new Response(JSON.stringify(doc), { status: 200 });
+    }
   } catch (error) {
     console.error("Update error:", error);
     return new Response("Error updating document", { status: 500 });

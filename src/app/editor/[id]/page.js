@@ -12,9 +12,10 @@ import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
 import Comment from "@/components/Comment";
 import Collaborators from "@/components/Collaborators";
-import AIChatPopup from '@/components/AIChatPopup';
+import AIChatPopup from "@/components/AIChatPopup";
 // import Image from "@tiptap/extension-image";
-
+import Link from "@tiptap/extension-link";
+import { formatDistanceToNow } from "date-fns";
 export default function EditorPage() {
   const { id: documentId } = useParams();
   const { user } = useUser();
@@ -29,7 +30,6 @@ export default function EditorPage() {
   const saveTimeoutRef = useRef(null);
   const [accessLevel, setAccessLevel] = useState(null);
 
-
   // states for share modal and email input
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
@@ -43,7 +43,8 @@ export default function EditorPage() {
   const socketRef = useRef(null);
   //state for AI chat popup
   const [showChatPopup, setShowChatPopup] = useState(false);
-
+  //state for timestamp
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     if (!user || !documentId) return;
@@ -83,14 +84,14 @@ export default function EditorPage() {
       const res = await fetch(`/api/documents/${documentId}/duplicate`, {
         method: "POST",
       });
-  
+
       if (!res.ok) {
         throw new Error("Failed to duplicate document");
       }
-  
+
       const data = await res.json();
       const newDocId = data.newDocumentId;
-  
+
       // Redirect to the new duplicated document
       router.push(`/editor/${newDocId}`);
     } catch (error) {
@@ -98,7 +99,6 @@ export default function EditorPage() {
       alert("Error duplicating document");
     }
   };
-
 
   const editor = useEditor({
     extensions: [
@@ -110,13 +110,23 @@ export default function EditorPage() {
         emptyEditorClass: "is-editor-empty",
       }),
       Comment,
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          class: "text-blue-600 underline",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
     ],
     content,
-    editable: accessLevel !== 'view',
+    editable: accessLevel !== "view",
     onUpdate: ({ editor }) => {
       if (!documentId) return;
 
-      if (accessLevel === 'view') {
+      if (accessLevel === "view") {
         // User only has view access, so don't save changes
         return;
       }
@@ -145,7 +155,7 @@ export default function EditorPage() {
 
           if (res.ok) {
             setSaveStatus("saved");
-
+            setLastUpdated(data.updatedAt);
             // Clear saved status after 2 seconds
             setTimeout(() => setSaveStatus("idle"), 2000);
           } else {
@@ -262,11 +272,15 @@ export default function EditorPage() {
           const initialContent = data.content || "";
           setContent(initialContent);
           setTitle(data.title || "Untitled");
+          setLastUpdated(data.updatedAt); // timestamp update
+
           setIsOwner(data.userId === user?.id);
           const email = user?.primaryEmailAddress?.emailAddress;
-          if (email && data.sharedWith?.some(entry => entry.user === email)) {
+          if (email && data.sharedWith?.some((entry) => entry.user === email)) {
             setIsSharedUser(true);
-            const sharedEntry = data.sharedWith.find(entry => entry.user === email);
+            const sharedEntry = data.sharedWith.find(
+              (entry) => entry.user === email
+            );
             setAccessLevel(sharedEntry?.access);
           }
 
@@ -351,9 +365,7 @@ export default function EditorPage() {
 
   return (
     <div className="editor-container">
-      {showChatPopup && (
-        <AIChatPopup documentContent={getCurrentContent()} />
-      )}
+      {showChatPopup && <AIChatPopup documentContent={getCurrentContent()} />}
       <div className="mt-4 flex justify-between">
         <Collaborators users={collaborators} />
         {editor && (
@@ -379,15 +391,16 @@ export default function EditorPage() {
         </div>
 
         {/* Show user access banners */}
-        {accessLevel === 'view' && (
+        {accessLevel === "view" && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded mb-4">
             You have view-only access to this document. Editing is disabled.
           </div>
         )}
 
-        {accessLevel === 'edit' && (
+        {accessLevel === "edit" && (
           <div className="bg-green-100 text-green-800 px-4 py-2 rounded mb-4">
-            You are a collaborator with edit access. Your changes will be saved automatically.
+            You are a collaborator with edit access. Your changes will be saved
+            automatically.
           </div>
         )}
 
@@ -396,7 +409,6 @@ export default function EditorPage() {
             You are the owner of this document.
           </div>
         )}
-        
 
         {/* Title with underline */}
         <div className="border-b border-gray-300 pb-2 mb-4">
@@ -420,9 +432,11 @@ export default function EditorPage() {
             </div>
           ) : (
             <h2
-            className={`editor-title ${accessLevel !== 'view' ? 'cursor-pointer' : ''}`}
-              onClick={() =>{
-                if (accessLevel !== 'view') {
+              className={`editor-title ${
+                accessLevel !== "view" ? "cursor-pointer" : ""
+              }`}
+              onClick={() => {
+                if (accessLevel !== "view") {
                   setIsEditingTitle(true);
                 }
               }}
@@ -430,53 +444,54 @@ export default function EditorPage() {
               {title || "Untitled"}
             </h2>
           )}
+          {lastUpdated && (
+            <p className="text-sm text-gray-500 mt-1">
+              Last edited{" "}
+              {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
+            </p>
+          )}
         </div>
 
         {/* Action buttons */}
         {(isOwner || isSharedUser) && (
           <div className="flex gap-2 mb-4">
-            {(isOwner || accessLevel === 'edit') && (
-              <button
-                onClick={handleDuplicate}
-                className="btn-secondary"
-              >
+            {(isOwner || accessLevel === "edit") && (
+              <button onClick={handleDuplicate} className="btn-secondary">
                 Duplicate
               </button>
             )}
-            
-            {(isOwner || accessLevel === 'edit') && (
-                <button
-                  onClick={() => setIsEditingTitle(true)}
-                  className="btn-secondary"
-                >
-                  Rename
-                </button>
-                )}
-                
-                {isOwner && (
-                <button
-                  onClick={handleDelete}
-                  className={`btn-danger ${
-                    !isOwner ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  disabled={!isOwner}
-                >
-                  Delete
-                </button>
+
+            {(isOwner || accessLevel === "edit") && (
+              <button
+                onClick={() => setIsEditingTitle(true)}
+                className="btn-secondary"
+              >
+                Rename
+              </button>
             )}
 
-            {(isOwner || accessLevel === 'edit') && (
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="btn-secondary"
-            >
-              Share
-            </button>
+            {isOwner && (
+              <button
+                onClick={handleDelete}
+                className={`btn-danger ${
+                  !isOwner ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={!isOwner}
+              >
+                Delete
+              </button>
             )}
 
+            {(isOwner || accessLevel === "edit") && (
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="btn-secondary"
+              >
+                Share
+              </button>
+            )}
           </div>
         )}
-
 
         {/* export button */}
         <div className="flex gap-2">
@@ -495,101 +510,105 @@ export default function EditorPage() {
         </div>
       </div>
 
-
-    {accessLevel !== 'view' && (
-      <>
-        <div className="editor-toolbar">
-          {[
-            { cmd: "toggleBold", label: "B" },
-            { cmd: "toggleItalic", label: "I" },
-            { cmd: "toggleUnderline", label: "U" },
-            { cmd: "toggleBulletList", label: "• List" },
-            { cmd: "toggleOrderedList", label: "1. List" },
-            { cmd: "setParagraph", label: "P" },
-            { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
-            { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
-            { cmd: "setTextAlign", args: "left", label: "Left" },
-            { cmd: "setTextAlign", args: "center", label: "Center" },
-            { cmd: "setTextAlign", args: "right", label: "Right" },
-            { cmd: "undo", label: "Undo" },
-            { cmd: "redo", label: "Redo" },
-          ].map(({ cmd, label, args }, idx) => (
-            <button
-              key={idx}
-              onClick={() =>
-                args
-                  ? editor.chain().focus()[cmd](args).run()
-                  : editor.chain().focus()[cmd]().run()
-              }
-              className="toolbar-btn"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-      {/* AI Assistant button */}
-      <button
-        id="ai-chat-button"
-        onClick={() => setShowChatPopup(!showChatPopup)}
-        className={`toolbar-btn ${showChatPopup ? 'bg-green' : ''}`}
-      >
-        AI Assistant
-      </button>
-
-      <button
-        className="toolbar-btn"
-        onClick={() => {
-          const commentText = prompt("Enter your comment:");
-          if (!commentText) return;
-
-          const id = crypto.randomUUID(); // unique comment id
-
-          editor.chain().focus().addComment({ id, content: commentText }).run();
-
-          // Store the comment in state or database
-          setComments((prev) => [...prev, { id, text: commentText }]);
-        }}
-      >
-        Comment
-      </button>
-
-      {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
-      <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
-        <h4 className="font-bold mb-2">Comments</h4>
-        {comments.map((c) => (
-          <div key={c.id} className="mb-3">
-            <textarea
-              className="text-sm w-full p-1 border rounded"
-              value={c.text}
-              onChange={(e) => {
-                const newText = e.target.value;
-                editor.commands.updateComment(c.id, newText);
-                // update status
-                setComments((prev) =>
-                  prev.map((x) => (x.id === c.id ? { ...x, text: newText } : x))
-                );
-              }}
-            />
-            <div className="flex justify-between mt-1">
+      {accessLevel !== "view" && (
+        <>
+          <div className="editor-toolbar">
+            {[
+              { cmd: "toggleBold", label: "B" },
+              { cmd: "toggleItalic", label: "I" },
+              { cmd: "toggleUnderline", label: "U" },
+              { cmd: "toggleBulletList", label: "• List" },
+              { cmd: "toggleOrderedList", label: "1. List" },
+              { cmd: "setParagraph", label: "P" },
+              { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
+              { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
+              { cmd: "setTextAlign", args: "left", label: "Left" },
+              { cmd: "setTextAlign", args: "center", label: "Center" },
+              { cmd: "setTextAlign", args: "right", label: "Right" },
+              { cmd: "undo", label: "Undo" },
+              { cmd: "redo", label: "Redo" },
+            ].map(({ cmd, label, args }, idx) => (
               <button
-                className="text-xs text-red-500"
-                onClick={() => {
-                  editor.chain().focus().removeComment(c.id).run();
-                  setComments((prev) => prev.filter((x) => x.id !== c.id));
-                }}
+                key={idx}
+                onClick={() =>
+                  args
+                    ? editor.chain().focus()[cmd](args).run()
+                    : editor.chain().focus()[cmd]().run()
+                }
+                className="toolbar-btn"
               >
-                Delete
+                {label}
               </button>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </>
-    )}
 
-<EditorContent editor={editor} className="ProseMirror" />
+          {/* AI Assistant button */}
+          <button
+            id="ai-chat-button"
+            onClick={() => setShowChatPopup(!showChatPopup)}
+            className={`toolbar-btn ${showChatPopup ? "bg-green" : ""}`}
+          >
+            AI Assistant
+          </button>
 
+          <button
+            className="toolbar-btn"
+            onClick={() => {
+              const commentText = prompt("Enter your comment:");
+              if (!commentText) return;
+
+              const id = crypto.randomUUID(); // unique comment id
+
+              editor
+                .chain()
+                .focus()
+                .addComment({ id, content: commentText })
+                .run();
+
+              // Store the comment in state or database
+              setComments((prev) => [...prev, { id, text: commentText }]);
+            }}
+          >
+            Comment
+          </button>
+
+          {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
+          <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
+            <h4 className="font-bold mb-2">Comments</h4>
+            {comments.map((c) => (
+              <div key={c.id} className="mb-3">
+                <textarea
+                  className="text-sm w-full p-1 border rounded"
+                  value={c.text}
+                  onChange={(e) => {
+                    const newText = e.target.value;
+                    editor.commands.updateComment(c.id, newText);
+                    // update status
+                    setComments((prev) =>
+                      prev.map((x) =>
+                        x.id === c.id ? { ...x, text: newText } : x
+                      )
+                    );
+                  }}
+                />
+                <div className="flex justify-between mt-1">
+                  <button
+                    className="text-xs text-red-500"
+                    onClick={() => {
+                      editor.chain().focus().removeComment(c.id).run();
+                      setComments((prev) => prev.filter((x) => x.id !== c.id));
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <EditorContent editor={editor} className="ProseMirror" />
 
       {showShareModal && (
         <div className="modal-backdrop">

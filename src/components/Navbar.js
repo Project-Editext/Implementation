@@ -1,9 +1,16 @@
-"use client";
+'use client';
 
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import ModeToggle from './mode-toggle';
 
 export default function Navbar() {
   const [mounted, setMounted] = useState(false);
@@ -17,17 +24,19 @@ export default function Navbar() {
       <div className="container d-flex flex-nowrap">
         <div className="d-flex align-items-center">
           <Link href="/" aria-label="Go to homepage">
-            <Image 
-              className="logo me-2" 
-              src="/assets/img/logo.png" 
+            <Image
+              className="logo me-2"
+              src="/assets/img/logo.png"
               alt="Logo"
               width={60}
               height={60}
             />
           </Link>
         </div>
-        <Link className="navbar-brand me-auto" href="/">Editext</Link>
-        
+        <Link className="navbar-brand me-auto" href="/">
+          Editext
+        </Link>
+        <ModeToggle />
         {/* Prevent hydration mismatch for auth buttons */}
         {mounted && (
           <div className="d-flex flex-nowrap gap-2">
@@ -45,15 +54,15 @@ export default function Navbar() {
                 </SignUpButton>
               </div>
             </SignedOut>
-            
+
             <SignedIn>
-              <UserButton 
+              <UserButton
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {
-                    userButtonBox: "h-8 w-8",
-                    userButtonAvatarBox: "h-8 w-8"
-                  }
+                    userButtonBox: 'h-8 w-8',
+                    userButtonAvatarBox: 'h-8 w-8',
+                  },
                 }}
               />
             </SignedIn>

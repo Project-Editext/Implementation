@@ -225,6 +225,29 @@
   z-index: 50;
 }
 
+.modal-shared-list {
+  margin-top: 1rem;
+  border-top: 1px solid #ccc;
+  padding-top: 1rem;
+}
+
+.shared-user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.shared-user-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.access-level {
+  font-style: italic;
+  color: #666;
+}
+
 
 .custom-modal {
   background: white;

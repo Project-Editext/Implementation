@@ -34,6 +34,7 @@ export default function EditorPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareMessage, setShareMessage] = useState("");
+  const [sharedUsers, setSharedUsers] = useState([]);
   const [comments, setComments] = useState([]); //comments
 
   const [shareAccess, setShareAccess] = useState("view"); // share state
@@ -154,6 +155,7 @@ export default function EditorPage() {
           });
 
           if (res.ok) {
+            const data = await res.json(); // Bug fix: error saving issue
             setSaveStatus("saved");
             setLastUpdated(data.updatedAt);
             // Clear saved status after 2 seconds
@@ -303,6 +305,25 @@ export default function EditorPage() {
       }
     };
   }, [documentId, editor, user]);
+
+
+  useEffect(() => {
+    if (!showShareModal) return; // check if share modal is opened
+  
+    async function fetchSharedUsers() { // function to get shared user list
+      try {
+        const res = await fetch(`/api/documents/${documentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSharedUsers(data.sharedWith || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch shared users:", err);
+      }
+    }
+  
+    fetchSharedUsers();
+  }, [showShareModal, documentId]);
 
   useEffect(() => {
     if (editor && accessLevel) {
@@ -639,6 +660,21 @@ export default function EditorPage() {
 
             {shareMessage && <p className="modal-message">{shareMessage}</p>}
 
+            {sharedUsers.length > 0 ? (
+              <div className="modal-shared-list">
+                <h4 className="modal-subtitle">Shared With:</h4>
+                <ul className="shared-user-list">
+                  {sharedUsers.map((user, index) => (
+                    <li key={index} className="shared-user-item">
+                      <span>{user.user}</span>
+                      <span className="access-level">({user.access})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="modal-text">This document is currently not shared with anyone.</p>
+            )}
             <div className="modal-actions">
               <button
                 className="btn-primary"

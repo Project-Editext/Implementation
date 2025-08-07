@@ -1,55 +1,101 @@
-"use client";
-import "/public/css/globals.css";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import { DocumentIcon } from "@heroicons/react/24/outline";
-
+'use client';
+import '/public/css/globals.css';
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { UserButton } from '@clerk/nextjs';
+import { DocumentIcon } from '@heroicons/react/24/outline';
+import { useTheme } from 'next-themes';
 import {
   ClipboardIcon,
   ClockIcon,
   CircleStackIcon,
   BookOpenIcon,
   CalendarIcon,
-} from "@heroicons/react/24/outline";
-import CreateDocModal from "../../components/CreateDocModal";
+} from '@heroicons/react/24/outline';
+import CreateDocModal from '../../components/CreateDocModal';
 
 export default function Dashboard() {
   const [docs, setDocs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchDocs = async () => {
-      const res = await fetch("/api/documents");
-      const data = await res.json();
-      setDocs(data);
-    };
-    fetchDocs();
+    // Load all docs initially
+    fetch('/api/documents')
+      .then((res) => res.json())
+      .then(setDocs);
   }, []);
+
+  // Search handler
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setIsSearching(true);
+    const res = await fetch(
+      `/api/documents/search?query=${encodeURIComponent(searchQuery)}`
+    );
+    const data = await res.json();
+    setSearchResults(data);
+    setIsSearching(false);
+  };
+
+  // Optionally, update results as user types (debounced)
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      handleSearch({ preventDefault: () => {} });
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   const templateIcons = {
     Notes: ClipboardIcon,
-    "TODO List": ClockIcon,
+    'TODO List': ClockIcon,
     Data: CircleStackIcon,
     Journal: BookOpenIcon,
     Calendar: CalendarIcon,
   };
-  const router = useRouter();
-  // Mapping from display label to actual template key used in templateMap
   const labelToTemplateKey = {
-    Notes: "notes",
-    "TODO List": "to-do list",
-    Data: "data",
-    Journal: "journal",
-    Calendar: "calendar",
+    Notes: 'notes',
+    'TODO List': 'to-do list',
+    Data: 'data',
+    Journal: 'journal',
+    Calendar: 'calendar',
   };
 
+  // Theme classes
+  const mainBg =
+    theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black';
+  const headerBg =
+    theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-secondary text-white';
+  const createDocBg =
+    theme === 'dark'
+      ? 'bg-gray-700 hover:bg-gray-600 text-white'
+      : 'bg-gray-200 hover:bg-gray-300 text-black';
+  const templateBg =
+    theme === 'dark'
+      ? 'bg-yellow-900 hover:bg-yellow-800 text-yellow-100'
+      : 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700';
+  const recentFileBg =
+    theme === 'dark'
+      ? 'bg-gray-800 hover:bg-gray-700 text-white'
+      : 'bg-gray-200 hover:bg-gray-300 text-black';
+  const recentFileIcon = theme === 'dark' ? 'text-gray-300' : 'text-gray-600';
+  const titleColor = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
+  const noDocsColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+
   return (
-    <div className="min-h-screen bg-gray-50 text-black">
+    <div className={`min-h-screen ${mainBg}`}>
       {/* Header */}
-      <header className="navbar bg-secondary text-white px-4 py-3 shadow-md">
+      <header className={`navbar ${headerBg} px-4 py-3 shadow-md`}>
         <div className="container-fluid d-flex justify-between align-items-center">
           <div className="d-flex align-items-center gap-3">
             <Link href="/" aria-label="Go to homepage">
@@ -63,21 +109,65 @@ export default function Dashboard() {
             </Link>
             <h1 className="mb-0 fs-4">Editext</h1>
           </div>
-
-          <div className="d-flex align-items-center gap-3">
+          <form
+            className="flex-grow mx-4"
+            onSubmit={handleSearch}
+            role="search"
+            aria-label="Search documents"
+          >
             <input
-              type="text"
-              placeholder="Search For a File"
-              className="form-control form-control-sm"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for a document..."
+              className="form-control form-control-sm w-full px-3 py-2 rounded"
+              aria-label="Search for a document"
             />
+          </form>
+          <div className="d-flex align-items-center gap-3">
+            <button
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="btn btn-sm btn-outline-light"
+              aria-label="Toggle theme"
+              title="Toggle theme"
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
             <UserButton afterSignOutUrl="/#portfolio" />
           </div>
         </div>
       </header>
 
+      {/* Search Results */}
+      {searchQuery.trim() !== '' && (
+        <div className="px-10 pt-2 pb-4">
+          <h3 className="text-lg font-bold mb-2">Search Results</h3>
+          {isSearching ? (
+            <p>Searching...</p>
+          ) : searchResults.length > 0 ? (
+            <div className="grid grid-cols-4 gap-6">
+              {searchResults.map((doc) => (
+                <Link
+                  key={doc._id}
+                  href={`/editor/${doc._id}`}
+                  className={`bg-gray-200 hover:bg-gray-300 text-black dark:bg-gray-800 dark:text-white p-6 rounded-lg text-center w-40 h-40 flex flex-col justify-center items-center`}
+                >
+                  <DocumentIcon className="h-8 w-8 mb-2" />
+                  <p className="text-sm">{doc.title || 'Untitled'}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No documents found.</p>
+          )}
+        </div>
+      )}
+
       {/* Main */}
       <main className="px-10 pt-2 pb-8">
-        <h2 className="text-3xl font-medium text-center mb-8 tracking-tight font-sans text-gray-800">
+        <h2
+          className={`text-3xl font-medium text-center mb-8 tracking-tight font-sans ${titleColor}`}
+        >
           Create Blank Document or Select a Template
         </h2>
 
@@ -86,9 +176,13 @@ export default function Dashboard() {
           {/* Create new doc */}
           <div
             onClick={() => setShowModal(true)}
-            className="bg-gray-200 hover:bg-gray-300 p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center"
+            className={`${createDocBg} p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center`}
           >
-            <DocumentIcon className="h-8 w-8 text-gray-700 mb-2" />
+            <DocumentIcon
+              className={`h-8 w-8 mb-2 ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              }`}
+            />
             <p className="text-sm">Create New Document</p>
           </div>
 
@@ -98,10 +192,10 @@ export default function Dashboard() {
               key={label}
               onClick={async () => {
                 const templateKey = labelToTemplateKey[label];
-                const res = await fetch("/api/documents", {
-                  method: "POST",
+                const res = await fetch('/api/documents', {
+                  method: 'POST',
                   headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
                     title: `New ${label} Doc`,
@@ -113,12 +207,12 @@ export default function Dashboard() {
                 if (res.ok && data._id) {
                   router.push(`/editor/${data._id}`);
                 } else {
-                  alert("Failed to create document.");
+                  alert('Failed to create document.');
                 }
               }}
-              className="bg-yellow-100 hover:bg-yellow-200 p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center"
+              className={`${templateBg} p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center`}
             >
-              <Icon className="h-8 w-8 text-yellow-700 mb-2" />
+              <Icon className="h-8 w-8 mb-2" />
               <p className="text-sm">{label}</p>
             </div>
           ))}
@@ -132,14 +226,14 @@ export default function Dashboard() {
               <Link
                 key={doc._id}
                 href={`/editor/${doc._id}`}
-                className="bg-gray-200 hover:bg-gray-300 p-6 rounded-lg text-center w-40 h-40 flex flex-col justify-center items-center"
+                className={`${recentFileBg} p-6 rounded-lg text-center w-40 h-40 flex flex-col justify-center items-center`}
               >
-                <DocumentIcon className="h-8 w-8 text-gray-600 mb-2" />
-                <p className="text-sm">{doc.title || "Untitled"}</p>
+                <DocumentIcon className={`h-8 w-8 mb-2 ${recentFileIcon}`} />
+                <p className="text-sm">{doc.title || 'Untitled'}</p>
               </Link>
             ))
           ) : (
-            <p className="text-gray-500 col-span-4">No documents found.</p>
+            <p className={`${noDocsColor} col-span-4`}>No documents found.</p>
           )}
         </div>
       </main>

@@ -14,7 +14,7 @@ export default function NewDocCard() {
     });
 
     const newDoc = await res.json();
-    router.push(`/editor/${newDoc._id}`);
+    router.push(`/editor/${newDoc.documentId}`);
   };
 
   return (

@@ -30,7 +30,7 @@ export async function POST(request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const doc = await Document.findById(id);
+    const doc = await Document.findOne({ documentId: id });
 
     if (!doc) {
       return NextResponse.json({ message: "Document not found" }, { status: 404 });

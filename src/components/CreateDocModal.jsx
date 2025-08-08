@@ -24,9 +24,9 @@ export default function CreateDocModal({ isOpen, onClose }) {
 
       const data = await res.json();
 
-      if (res.ok && data._id) {
+      if (res.ok && data.documentId) {
         onClose();
-        router.push(`/editor/${data._id}`); // go to edit page
+        router.push(`/editor/${data.documentId}`); // go to edit page
       } else {
         alert("Failed to create document");
       }

@@ -6,6 +6,8 @@ import Document from "@/models/Document";
 import templateMap from "@/lib/templateMap";
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { nanoid } from "nanoid";
+
 
 // Helper function to check access
 async function hasAccess(doc, userId, type = "view") {
@@ -34,7 +36,7 @@ export async function GET(request, context) {
     await connectToDB();
 
     const { id } = await context.params;
-    const doc = await Document.findById(id);
+    const doc = await Document.findOne({ documentId: id });
 
     if (!doc) {
       return NextResponse.json(
@@ -62,7 +64,7 @@ export async function PUT(req, context) {
     // Extract id from URL path
     //const id = req.url.split('/').pop();
 
-    const doc = await Document.findById(params.id);
+    const doc = await Document.findOne({ documentId: params.id });
     if (!doc) {
       return new Response("Document not found", { status: 404 });
     }
@@ -93,8 +95,8 @@ export async function PUT(req, context) {
     }
 
     if (shouldUpdate) {
-      const updatedDoc = await Document.findByIdAndUpdate(
-        params.id,
+      const updatedDoc = await Document.findOneAndUpdate(
+        { documentId: params.id },
         updatedFields,
         { new: true }
       );
@@ -113,7 +115,7 @@ export async function DELETE(req, { params }) {
   try {
     await connectToDB();
 
-    const deletedDoc = await Document.findByIdAndDelete(params.id);
+    const deletedDoc = await Document.findOneAndDelete({ documentId: params.id });
     if (!deletedDoc) {
       return NextResponse.json(
         { message: "Document not found" },
@@ -136,6 +138,7 @@ export async function POST(req) {
     const content = templateMap[template]?.content || "";
 
     const doc = await Document.create({
+      documentId: nanoid(21),
       title: title || "Untitled",
       content,
       userId,

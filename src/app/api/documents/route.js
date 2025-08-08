@@ -5,6 +5,8 @@ import Document from "@/models/Document";
 import { auth } from "@clerk/nextjs/server";
 import { templates } from "@/lib/templateMap";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { nanoid } from "nanoid";
+
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export async function POST(req) {
     const templateContent = templates[templateKey]?.content || "";
 
     const newDoc = await Document.create({
+      documentId: nanoid(21),
       title: body.title || "Untitled",
       content: templateContent,
       createdAt: new Date(),

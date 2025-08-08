@@ -110,8 +110,8 @@ export default function Dashboard() {
                 });
 
                 const data = await res.json();
-                if (res.ok && data._id) {
-                  router.push(`/editor/${data._id}`);
+                if (res.ok && data.documentId) {
+                  router.push(`/editor/${data.documentId}`);
                 } else {
                   alert("Failed to create document.");
                 }
@@ -130,8 +130,8 @@ export default function Dashboard() {
           {docs.length > 0 ? (
             docs.map((doc) => (
               <Link
-                key={doc._id}
-                href={`/editor/${doc._id}`}
+                key={doc.documentId}
+                href={`/editor/${doc.documentId}`}
                 className="bg-gray-200 hover:bg-gray-300 p-6 rounded-lg text-center w-40 h-40 flex flex-col justify-center items-center"
               >
                 <DocumentIcon className="h-8 w-8 text-gray-600 mb-2" />

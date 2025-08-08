@@ -1,26 +1,33 @@
 import { useEffect, useState } from 'react';
-import { createSearchPlugin } from '../lib/editor/searchPlugin';
+import { createSearchPlugin, searchPluginKey } from '../lib/editor/searchPlugin';
 
 export default function SearchBar({ editor }) {
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
+  const updateSearchPlugin = (searchQuery) => {
     if (!editor) return;
 
     const pluginsWithoutSearch = editor.state.plugins.filter(
-      (p) => p.key !== 'search'
+      (p) => p.key !== searchPluginKey
     );
 
-    const searchPlugin = createSearchPlugin(query.trim());
+    const searchPlugin = createSearchPlugin(searchQuery.trim());
 
     const newState = editor.state.reconfigure({
       plugins: [...pluginsWithoutSearch, searchPlugin],
     });
 
     editor.view.updateState(newState);
+  };
+
+  useEffect(() => {
+    updateSearchPlugin(query);
   }, [query, editor]);
 
-  const clearSearch = () => setQuery('');
+  const clearSearch = () => {
+    setQuery('');
+    updateSearchPlugin('');
+  };
 
   return (
     <div className="flex gap-2">

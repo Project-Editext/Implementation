@@ -189,6 +189,7 @@
   min-height: 400px;
   padding: 1rem;
   background-color: #ffffff;
+  color: #333;
   border: 1px solid #ddd;
   border-radius: 8px;
   line-height: 1.6;
@@ -199,6 +200,61 @@
 
 .ProseMirror:focus {
   outline: none;
+}
+
+/* Make tables more visible */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid #ddd;
+}
+
+.ProseMirror th, 
+.ProseMirror td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* Add zebra striping for better readability */
+.ProseMirror tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Add this to your globals.css */
+/* List Styling */
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.5rem 0;
+  color: #333; /* Ensure text color is visible */
+}
+
+/* Make sure list markers are visible */
+.ProseMirror ul li::marker {
+  color: #333;
+}
+
+.ProseMirror ol li::marker {
+  color: #333;
 }
 
 /* Placeholder fix (already in your CSS, repeated for clarity) */
@@ -290,4 +346,71 @@
 
 .toolbar-btn.bg-green {
   background-color: #31e43d;
+}
+
+/* Add table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid #ddd;
+}
+
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+table th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* Add to globals.css */
+/* Force simple table structure */
+.tiptap-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #ddd !important;
+}
+
+.tiptap-table th,
+.tiptap-table td {
+  border: 1px solid #ddd !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+}
+
+.tiptap-table th {
+  background-color: #f2f2f2 !important;
+  font-weight: 600 !important;
+}
+
+/* Hide all empty elements */
+.tiptap-table td:empty,
+.tiptap-table th:empty,
+.tiptap-table tr:empty {
+  display: none !important;
+}
+
+/* Remove all unnecessary spacing */
+.tiptap-table * {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-spacing: 0 !important;
+}
+
+/* Remove any min-width constraints */
+.tiptap-table,
+.tiptap-table th,
+.tiptap-table td {
+  min-width: auto !important;
+  max-width: none !important;
+}
+
+/* Remove any special classes */
+.tiptap-table .ProseMirror-trailingBreak {
+  display: none !important;
 }

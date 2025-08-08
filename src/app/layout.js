@@ -1,3 +1,4 @@
+//src/app/layout.js
 import { Geist, Geist_Mono } from 'next/font/google';
 import '../../public/css/globals.css';
 import '../../public/css/styles.css';

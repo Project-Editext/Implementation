@@ -8,14 +8,18 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { useUser } from "@clerk/nextjs";
 import "../../../../public/css/globals.css";
 import Comment from "@/components/Comment";
 import Collaborators from "@/components/Collaborators";
 import AIChatPopup from "@/components/AIChatPopup";
-// import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { formatDistanceToNow } from "date-fns";
+
 export default function EditorPage() {
   const { id: documentId } = useParams();
   const { user } = useUser();
@@ -103,7 +107,11 @@ export default function EditorPage() {
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: true }),
+      StarterKit.configure({ 
+        history: true,
+        // Disable the default table extension
+        table: false
+      }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({
@@ -121,6 +129,16 @@ export default function EditorPage() {
           rel: "noopener noreferrer",
         },
       }),
+      // Add table extensions
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: "tiptap-table",
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     editable: accessLevel !== "view",
@@ -384,9 +402,29 @@ export default function EditorPage() {
     return editor ? editor.getHTML() : content;
   };
 
+  // Table buttons for toolbar
+  const tableButtons = [
+    { 
+      cmd: "insertTable", 
+      args: { rows: 3, cols: 3, withHeaderRow: true }, 
+      label: "Insert Table" 
+    },
+    { cmd: "addColumnAfter", label: "+ Col" },
+    { cmd: "addRowAfter", label: "+ Row" },
+    { cmd: "deleteColumn", label: "- Col" },
+    { cmd: "deleteRow", label: "- Row" },
+    { cmd: "mergeCells", label: "Merge" },
+    { cmd: "splitCell", label: "Split" },
+  ];
+
   return (
     <div className="editor-container">
-      {showChatPopup && <AIChatPopup documentContent={getCurrentContent()} />}
+      {showChatPopup && (
+        <AIChatPopup 
+          documentContent={getCurrentContent()} 
+          editor={editor}
+        />
+      )}
       <div className="mt-4 flex justify-between">
         <Collaborators users={collaborators} />
         {editor && (
@@ -561,6 +599,21 @@ export default function EditorPage() {
                 {label}
               </button>
             ))}
+            
+            {/* Table buttons */}
+            {tableButtons.map(({ cmd, label, args }, idx) => (
+              <button
+                key={`table-${idx}`}
+                onClick={() =>
+                  args
+                    ? editor.chain().focus()[cmd](args).run()
+                    : editor.chain().focus()[cmd]().run()
+                }
+                className="toolbar-btn"
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* AI Assistant button */}
@@ -593,7 +646,6 @@ export default function EditorPage() {
             Comment
           </button>
 
-          {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
           <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
             <h4 className="font-bold mb-2">Comments</h4>
             {comments.map((c) => (

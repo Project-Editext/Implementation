@@ -13,12 +13,13 @@ export async function GET() {
     await connectToDB();
 
     const { userId } = await auth();
-    const user = await clerkClient.users.getUser(userId); // get user obj from clerk client
-    const email = user?.emailAddresses?.[0]?.emailAddress; // get user email from clerk obj
+    const user = await clerkClient.users.getUser(userId);
+    const email = user?.emailAddresses?.[0]?.emailAddress;
     const query = [{ userId }];
     
-    if (email)
+    if (email) {
       query.push({ "sharedWith.user": email });
+    }
 
     const docs = await Document.find({ $or: query }).sort({ createdAt: -1 });
 
@@ -32,14 +33,11 @@ export async function GET() {
   }
 }
 
-
 export async function POST(req) {
   try {
     await connectToDB();
     const { userId } = await auth();
     const body = await req.json();
-
-    // temp
 
     const templateKey = body.template?.toLowerCase();
     const templateContent = templates[templateKey]?.content || "";
@@ -47,7 +45,6 @@ export async function POST(req) {
     const newDoc = await Document.create({
       title: body.title || "Untitled",
       content: templateContent,
-      createdAt: new Date(),
       userId,
     });
 

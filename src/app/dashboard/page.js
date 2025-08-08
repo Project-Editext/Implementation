@@ -1,3 +1,4 @@
+//src/app/dashboard/page.js
 "use client";
 import "/public/css/globals.css";
 import Image from "next/image";
@@ -6,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { DocumentIcon } from "@heroicons/react/24/outline";
+import { format } from "date-fns";
 
 import {
   ClipboardIcon,
@@ -44,6 +46,12 @@ export default function Dashboard() {
     Data: "data",
     Journal: "journal",
     Calendar: "calendar",
+  };
+
+  // Format creation date function
+  const formatCreationDate = (dateString) => {
+    const date = new Date(dateString);
+    return format(date, "dd/MM/yyyy");
   };
 
   return (
@@ -132,10 +140,13 @@ export default function Dashboard() {
               <Link
                 key={doc._id}
                 href={`/editor/${doc._id}`}
-                className="bg-gray-200 hover:bg-gray-300 p-6 rounded-lg text-center w-40 h-40 flex flex-col justify-center items-center"
+                className="bg-gray-200 hover:bg-gray-300 p-6 rounded-lg text-center w-40 h-44 flex flex-col justify-center items-center"
               >
                 <DocumentIcon className="h-8 w-8 text-gray-600 mb-2" />
                 <p className="text-sm">{doc.title || "Untitled"}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCreationDate(doc.createdAt)}
+                </p>
               </Link>
             ))
           ) : (

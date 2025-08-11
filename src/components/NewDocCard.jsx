@@ -1,4 +1,3 @@
-//src/components/NewDocCard.jsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -14,7 +13,7 @@ export default function NewDocCard() {
     });
 
     const newDoc = await res.json();
-    router.push(`/editor/${newDoc.documentId}`);
+    router.push(`/editor/${newDoc._id}`);
   };
 
   return (

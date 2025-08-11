@@ -1,14 +1,7 @@
-// src/models/Document.js
 import mongoose from "mongoose";
-import { nanoid } from "nanoid";
 
 const DocumentSchema = new mongoose.Schema(
   {
-    documentId: {
-      type: String,
-      unique: true,
-      default: () => nanoid(21), // random url id
-    },
     title: {
       type: String,
       required: true,

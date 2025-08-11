@@ -1,47 +1,44 @@
 //src/app/editor/[id]/page.js
-"use client";
-import { io } from "socket.io-client";
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
-import Placeholder from "@tiptap/extension-placeholder";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import { useUser } from "@clerk/nextjs";
-import "../../../../public/css/globals.css";
-import Comment from "@/components/Comment";
-import Collaborators from "@/components/Collaborators";
-import AIChatPopup from "@/components/AIChatPopup";
-import Link from "@tiptap/extension-link";
-import { formatDistanceToNow } from "date-fns";
-
-export default function EditorPage() {
+'use client';
+import { io } from 'socket.io-client';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
+import { useUser } from '@clerk/nextjs';
+import '../../../../public/css/globals.css';
+import Comment from '@/components/Comment';
+import Collaborators from '@/components/Collaborators';
+import AIChatPopup from '@/components/AIChatPopup';
+// import Image from "@tiptap/extension-image";
+import Link from '@tiptap/extension-link';
+import { formatDistanceToNow } from 'date-fns';
+import SmartSearch from '@/components/SmartSearch';
+import { use } from 'react';
+export default function EditorPage(props) {
   const { id: documentId } = useParams();
   const { user } = useUser();
   const router = useRouter();
 
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
+  const [content, setContent] = useState('');
+  const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [isSharedUser, setIsSharedUser] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("idle"); // 'idle', 'saving', 'saved', 'error'
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const saveTimeoutRef = useRef(null);
   const [accessLevel, setAccessLevel] = useState(null);
 
   // states for share modal and email input
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareEmail, setShareEmail] = useState("");
-  const [shareMessage, setShareMessage] = useState("");
-  const [sharedUsers, setSharedUsers] = useState([]);
+  const [shareEmail, setShareEmail] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
   const [comments, setComments] = useState([]); //comments
 
-  const [shareAccess, setShareAccess] = useState("view"); // share state
+  const [shareAccess, setShareAccess] = useState('view'); // share state
 
   //avatar
   const [collaborators, setCollaborators] = useState([]);
@@ -54,11 +51,11 @@ export default function EditorPage() {
   useEffect(() => {
     if (!user || !documentId) return;
 
-    const socket = io("https://socket-server-eo5i.onrender.com");
+    const socket = io('https://socket-server-eo5i.onrender.com');
 
     socketRef.current = socket;
 
-    socket.emit("join-document", {
+    socket.emit('join-document', {
       docId: documentId,
       user: {
         name: user.fullName,
@@ -66,7 +63,7 @@ export default function EditorPage() {
       },
     });
 
-    socket.on("users-updated", (users) => {
+    socket.on('users-updated', (users) => {
       setCollaborators(users);
     });
 
@@ -87,11 +84,11 @@ export default function EditorPage() {
   const handleDuplicate = async () => {
     try {
       const res = await fetch(`/api/documents/${documentId}/duplicate`, {
-        method: "POST",
+        method: 'POST',
       });
 
       if (!res.ok) {
-        throw new Error("Failed to duplicate document");
+        throw new Error('Failed to duplicate document');
       }
 
       const data = await res.json();
@@ -100,23 +97,19 @@ export default function EditorPage() {
       // Redirect to the new duplicated document
       router.push(`/editor/${newDocId}`);
     } catch (error) {
-      console.error("Duplicate error:", error);
-      alert("Error duplicating document");
+      console.error('Duplicate error:', error);
+      alert('Error duplicating document');
     }
   };
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ 
-        history: true,
-        // Disable the default table extension
-        table: false
-      }),
+      StarterKit.configure({ history: true }),
       Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({
-        placeholder: "Start typing here...",
-        emptyEditorClass: "is-editor-empty",
+        placeholder: 'Start typing here...',
+        emptyEditorClass: 'is-editor-empty',
       }),
       Comment,
       Link.configure({
@@ -124,34 +117,24 @@ export default function EditorPage() {
         autolink: true,
         linkOnPaste: true,
         HTMLAttributes: {
-          class: "text-blue-600 underline",
-          target: "_blank",
-          rel: "noopener noreferrer",
+          class: 'text-blue-600 underline',
+          target: '_blank',
+          rel: 'noopener noreferrer',
         },
       }),
-      // Add table extensions
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: "tiptap-table",
-        },
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
     ],
     content,
-    editable: accessLevel !== "view",
+    editable: accessLevel !== 'view',
     onUpdate: ({ editor }) => {
       if (!documentId) return;
 
-      if (accessLevel === "view") {
+      if (accessLevel === 'view') {
         // User only has view access, so don't save changes
         return;
       }
 
       // Update save status
-      setSaveStatus("saving");
+      setSaveStatus('saving');
 
       // Clear any previous timeout
       if (saveTimeoutRef.current) {
@@ -164,8 +147,8 @@ export default function EditorPage() {
           const updatedContent = editor.getHTML();
           const updatedComments = extractCommentsFromDoc(editor.state.doc); //updatedComments
           const res = await fetch(`/api/documents/${documentId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               content: updatedContent,
               comments: updatedComments,
@@ -173,17 +156,16 @@ export default function EditorPage() {
           });
 
           if (res.ok) {
-            const data = await res.json(); // Bug fix: error saving issue
-            setSaveStatus("saved");
+            const data = await res.json();
+            setSaveStatus('saved');
             setLastUpdated(data.updatedAt);
-            // Clear saved status after 2 seconds
-            setTimeout(() => setSaveStatus("idle"), 2000);
+            setTimeout(() => setSaveStatus('idle'), 2000);
           } else {
-            setSaveStatus("error");
+            setSaveStatus('error');
           }
         } catch (err) {
-          console.error("Error saving document:", err);
-          setSaveStatus("error");
+          console.error('Error saving document:', err);
+          setSaveStatus('error');
         }
       }, 500); // 500ms debounce
     },
@@ -191,71 +173,71 @@ export default function EditorPage() {
   });
 
   const handleSaveTitle = async () => {
-    setSaveStatus("saving");
+    setSaveStatus('saving');
     try {
       await fetch(`/api/documents/${documentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       });
       setIsEditingTitle(false);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (err) {
-      console.error("Error saving title:", err);
-      setSaveStatus("error");
+      console.error('Error saving title:', err);
+      setSaveStatus('error');
     }
   };
 
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this document?"
+      'Are you sure you want to delete this document?'
     );
     if (!confirmDelete) return;
 
-    setSaveStatus("saving");
+    setSaveStatus('saving');
     try {
       const res = await fetch(`/api/documents/${documentId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (res.ok) {
-        router.push("/dashboard");
+        router.push('/dashboard');
       } else {
-        alert("Failed to delete document.");
-        setSaveStatus("idle");
+        alert('Failed to delete document.');
+        setSaveStatus('idle');
       }
     } catch (err) {
-      console.error("Error deleting document:", err);
-      setSaveStatus("error");
+      console.error('Error deleting document:', err);
+      setSaveStatus('error');
     }
   };
   //handleExport
   const handleExport = async (type) => {
-    const fileName = title || documentId || "document";
-    const element = document.querySelector(".ProseMirror");
+    const fileName = title || documentId || 'document';
+    const element = document.querySelector('.ProseMirror');
 
     if (!element) {
-      alert("No content found to export.");
+      alert('No content found to export.');
       return;
     }
 
-    if (type === "pdf") {
-      const html2pdf = (await import("html2pdf.js")).default;
+    if (type === 'pdf') {
+      const html2pdf = (await import('html2pdf.js')).default;
 
       html2pdf()
         .set({
           margin: 10,
           filename: `${fileName}.pdf`,
           html2canvas: { scale: 2 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(element)
         .save();
-    } else if (type === "txt") {
+    } else if (type === 'txt') {
       const text = element.innerText;
-      const blob = new Blob([text], { type: "text/plain" });
-      const link = document.createElement("a");
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${fileName}.txt`;
       document.body.appendChild(link);
@@ -270,7 +252,7 @@ export default function EditorPage() {
     doc.descendants((node) => {
       node.marks?.forEach((mark) => {
         if (
-          mark.type.name === "comment" &&
+          mark.type.name === 'comment' &&
           mark.attrs?.id &&
           mark.attrs?.content
         ) {
@@ -284,14 +266,14 @@ export default function EditorPage() {
   useEffect(() => {
     async function loadContent() {
       if (!documentId) return;
-      setSaveStatus("loading");
+      setSaveStatus('loading');
       try {
         const res = await fetch(`/api/documents/${documentId}`);
         if (res.ok) {
           const data = await res.json();
-          const initialContent = data.content || "";
+          const initialContent = data.content || '';
           setContent(initialContent);
-          setTitle(data.title || "Untitled");
+          setTitle(data.title || 'Untitled');
           setLastUpdated(data.updatedAt); // timestamp update
 
           setIsOwner(data.userId === user?.id);
@@ -305,13 +287,13 @@ export default function EditorPage() {
           }
 
           editor?.commands.setContent(initialContent);
-          setSaveStatus("idle");
+          setSaveStatus('idle');
         } else {
-          setSaveStatus("error");
+          setSaveStatus('error');
         }
       } catch (err) {
-        console.error("Error loading document:", err);
-        setSaveStatus("error");
+        console.error('Error loading document:', err);
+        setSaveStatus('error');
       }
     }
     loadContent();
@@ -324,28 +306,9 @@ export default function EditorPage() {
     };
   }, [documentId, editor, user]);
 
-
-  useEffect(() => {
-    if (!showShareModal) return; // check if share modal is opened
-  
-    async function fetchSharedUsers() { // function to get shared user list
-      try {
-        const res = await fetch(`/api/documents/${documentId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSharedUsers(data.sharedWith || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch shared users:", err);
-      }
-    }
-  
-    fetchSharedUsers();
-  }, [showShareModal, documentId]);
-
   useEffect(() => {
     if (editor && accessLevel) {
-      editor.setEditable(accessLevel !== "view");
+      editor.setEditable(accessLevel !== 'view');
     }
   }, [editor, accessLevel]);
 
@@ -367,32 +330,32 @@ export default function EditorPage() {
   // Status indicator text
   const getStatusText = () => {
     switch (saveStatus) {
-      case "saving":
-        return "Saving...";
-      case "saved":
-        return "All changes saved";
-      case "error":
-        return "Error saving";
-      case "loading":
-        return "Loading...";
+      case 'saving':
+        return 'Saving...';
+      case 'saved':
+        return 'All changes saved';
+      case 'error':
+        return 'Error saving';
+      case 'loading':
+        return 'Loading...';
       default:
-        return "";
+        return '';
     }
   };
 
   // Status indicator color
   const getStatusColor = () => {
     switch (saveStatus) {
-      case "saving":
-        return "text-yellow-500";
-      case "saved":
-        return "text-green-500";
-      case "error":
-        return "text-red-500";
-      case "loading":
-        return "text-blue-500";
+      case 'saving':
+        return 'text-yellow-500';
+      case 'saved':
+        return 'text-green-500';
+      case 'error':
+        return 'text-red-500';
+      case 'loading':
+        return 'text-blue-500';
       default:
-        return "text-gray-500";
+        return 'text-gray-500';
     }
   };
 
@@ -402,29 +365,12 @@ export default function EditorPage() {
     return editor ? editor.getHTML() : content;
   };
 
-  // Table buttons for toolbar
-  const tableButtons = [
-    { 
-      cmd: "insertTable", 
-      args: { rows: 3, cols: 3, withHeaderRow: true }, 
-      label: "Insert Table" 
-    },
-    { cmd: "addColumnAfter", label: "+ Col" },
-    { cmd: "addRowAfter", label: "+ Row" },
-    { cmd: "deleteColumn", label: "- Col" },
-    { cmd: "deleteRow", label: "- Row" },
-    { cmd: "mergeCells", label: "Merge" },
-    { cmd: "splitCell", label: "Split" },
-  ];
-
   return (
     <div className="editor-container">
-      {showChatPopup && (
-        <AIChatPopup 
-          documentContent={getCurrentContent()} 
-          editor={editor}
-        />
-      )}
+      <div>
+        <SmartSearch editor={editor} />
+      </div>
+      {showChatPopup && <AIChatPopup documentContent={getCurrentContent()} />}
       <div className="mt-4 flex justify-between">
         <Collaborators users={collaborators} />
         {editor && (
@@ -433,8 +379,8 @@ export default function EditorPage() {
             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
           >
             {wordCount !== null
-              ? `${wordCount} word${wordCount !== 1 ? "s" : ""}`
-              : "Word Count"}
+              ? `${wordCount} word${wordCount !== 1 ? 's' : ''}`
+              : 'Word Count'}
           </button>
         )}
       </div>
@@ -450,13 +396,13 @@ export default function EditorPage() {
         </div>
 
         {/* Show user access banners */}
-        {accessLevel === "view" && (
+        {accessLevel === 'view' && (
           <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded mb-4">
             You have view-only access to this document. Editing is disabled.
           </div>
         )}
 
-        {accessLevel === "edit" && (
+        {accessLevel === 'edit' && (
           <div className="bg-green-100 text-green-800 px-4 py-2 rounded mb-4">
             You are a collaborator with edit access. Your changes will be saved
             automatically.
@@ -492,20 +438,20 @@ export default function EditorPage() {
           ) : (
             <h2
               className={`editor-title ${
-                accessLevel !== "view" ? "cursor-pointer" : ""
+                accessLevel !== 'view' ? 'cursor-pointer' : ''
               }`}
               onClick={() => {
-                if (accessLevel !== "view") {
+                if (accessLevel !== 'view') {
                   setIsEditingTitle(true);
                 }
               }}
             >
-              {title || "Untitled"}
+              {title || 'Untitled'}
             </h2>
           )}
           {lastUpdated && (
             <p className="text-sm text-gray-500 mt-1">
-              Last edited{" "}
+              Last edited{' '}
               {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
             </p>
           )}
@@ -514,13 +460,13 @@ export default function EditorPage() {
         {/* Action buttons */}
         {(isOwner || isSharedUser) && (
           <div className="flex gap-2 mb-4">
-            {(isOwner || accessLevel === "edit") && (
+            {(isOwner || accessLevel === 'edit') && (
               <button onClick={handleDuplicate} className="btn-secondary">
                 Duplicate
               </button>
             )}
 
-            {(isOwner || accessLevel === "edit") && (
+            {(isOwner || accessLevel === 'edit') && (
               <button
                 onClick={() => setIsEditingTitle(true)}
                 className="btn-secondary"
@@ -533,7 +479,7 @@ export default function EditorPage() {
               <button
                 onClick={handleDelete}
                 className={`btn-danger ${
-                  !isOwner ? "opacity-50 cursor-not-allowed" : ""
+                  !isOwner ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 disabled={!isOwner}
               >
@@ -541,7 +487,7 @@ export default function EditorPage() {
               </button>
             )}
 
-            {(isOwner || accessLevel === "edit") && (
+            {(isOwner || accessLevel === 'edit') && (
               <button
                 onClick={() => setShowShareModal(true)}
                 className="btn-secondary"
@@ -555,13 +501,13 @@ export default function EditorPage() {
         {/* export button */}
         <div className="flex gap-2">
           <button
-            onClick={() => handleExport("pdf")}
+            onClick={() => handleExport('pdf')}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Export as PDF
           </button>
           <button
-            onClick={() => handleExport("txt")}
+            onClick={() => handleExport('txt')}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Export as TXT
@@ -569,41 +515,26 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {accessLevel !== "view" && (
+      {accessLevel !== 'view' && (
         <>
           <div className="editor-toolbar">
             {[
-              { cmd: "toggleBold", label: "B" },
-              { cmd: "toggleItalic", label: "I" },
-              { cmd: "toggleUnderline", label: "U" },
-              { cmd: "toggleBulletList", label: "• List" },
-              { cmd: "toggleOrderedList", label: "1. List" },
-              { cmd: "setParagraph", label: "P" },
-              { cmd: "toggleHeading", args: { level: 1 }, label: "H1" },
-              { cmd: "toggleHeading", args: { level: 2 }, label: "H2" },
-              { cmd: "setTextAlign", args: "left", label: "Left" },
-              { cmd: "setTextAlign", args: "center", label: "Center" },
-              { cmd: "setTextAlign", args: "right", label: "Right" },
-              { cmd: "undo", label: "Undo" },
-              { cmd: "redo", label: "Redo" },
+              { cmd: 'toggleBold', label: 'B' },
+              { cmd: 'toggleItalic', label: 'I' },
+              { cmd: 'toggleUnderline', label: 'U' },
+              { cmd: 'toggleBulletList', label: '• List' },
+              { cmd: 'toggleOrderedList', label: '1. List' },
+              { cmd: 'setParagraph', label: 'P' },
+              { cmd: 'toggleHeading', args: { level: 1 }, label: 'H1' },
+              { cmd: 'toggleHeading', args: { level: 2 }, label: 'H2' },
+              { cmd: 'setTextAlign', args: 'left', label: 'Left' },
+              { cmd: 'setTextAlign', args: 'center', label: 'Center' },
+              { cmd: 'setTextAlign', args: 'right', label: 'Right' },
+              { cmd: 'undo', label: 'Undo' },
+              { cmd: 'redo', label: 'Redo' },
             ].map(({ cmd, label, args }, idx) => (
               <button
                 key={idx}
-                onClick={() =>
-                  args
-                    ? editor.chain().focus()[cmd](args).run()
-                    : editor.chain().focus()[cmd]().run()
-                }
-                className="toolbar-btn"
-              >
-                {label}
-              </button>
-            ))}
-            
-            {/* Table buttons */}
-            {tableButtons.map(({ cmd, label, args }, idx) => (
-              <button
-                key={`table-${idx}`}
                 onClick={() =>
                   args
                     ? editor.chain().focus()[cmd](args).run()
@@ -620,7 +551,7 @@ export default function EditorPage() {
           <button
             id="ai-chat-button"
             onClick={() => setShowChatPopup(!showChatPopup)}
-            className={`toolbar-btn ${showChatPopup ? "bg-green" : ""}`}
+            className={`toolbar-btn ${showChatPopup ? 'bg-green' : ''}`}
           >
             AI Assistant
           </button>
@@ -628,7 +559,7 @@ export default function EditorPage() {
           <button
             className="toolbar-btn"
             onClick={() => {
-              const commentText = prompt("Enter your comment:");
+              const commentText = prompt('Enter your comment:');
               if (!commentText) return;
 
               const id = crypto.randomUUID(); // unique comment id
@@ -646,6 +577,7 @@ export default function EditorPage() {
             Comment
           </button>
 
+          {/*  <EditorContent editor={editor} className="ProseMirror" />*/}
           <div className="fixed right-0 top-20 w-[200px] h-full bg-gray-100 border-l p-3 overflow-y-auto">
             <h4 className="font-bold mb-2">Comments</h4>
             {comments.map((c) => (
@@ -712,21 +644,6 @@ export default function EditorPage() {
 
             {shareMessage && <p className="modal-message">{shareMessage}</p>}
 
-            {sharedUsers.length > 0 ? (
-              <div className="modal-shared-list">
-                <h4 className="modal-subtitle">Shared With:</h4>
-                <ul className="shared-user-list">
-                  {sharedUsers.map((user, index) => (
-                    <li key={index} className="shared-user-item">
-                      <span>{user.user}</span>
-                      <span className="access-level">({user.access})</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="modal-text">This document is currently not shared with anyone.</p>
-            )}
             <div className="modal-actions">
               <button
                 className="btn-primary"
@@ -734,8 +651,8 @@ export default function EditorPage() {
                   const res = await fetch(
                     `/api/documents/${documentId}/share`,
                     {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         email: shareEmail,
                         access: shareAccess,
@@ -745,10 +662,10 @@ export default function EditorPage() {
 
                   const data = await res.json();
                   if (res.ok) {
-                    setShareMessage("Shared successfully!");
-                    setShareEmail("");
+                    setShareMessage('Shared successfully!');
+                    setShareEmail('');
                   } else {
-                    setShareMessage("Error: " + data.message);
+                    setShareMessage('Error: ' + data.message);
                   }
                 }}
               >

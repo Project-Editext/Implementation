@@ -1,58 +1,59 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
 /* Add to globals.css */
 .bg-light {
-  background-color: #f8f9fa !important;
+    background-color: #f8f9fa !important;
 }
 
 .bg-primary {
-  background-color: #1abc9c !important; /* Original primary color from your theme */
+    background-color: #1abc9c !important; /* Original primary color from your theme */
 }
 
 .text-secondary {
-  color: #2c3e50 !important; /* Original secondary color from your theme */
+    color: #2c3e50 !important; /* Original secondary color from your theme */
 }
 
 /* Ensure contact section text stays white */
 .page-section.bg-primary {
-  color: #fff;
+    color: #fff;
 }
 
 /* Adjust button contrast in contact section */
 .page-section.bg-primary .btn-primary {
-  background-color: #2c3e50;
-  border-color: #2c3e50;
+    background-color: #2c3e50;
+    border-color: #2c3e50;
 }
 .page-section.bg-primary .btn-primary:hover {
-  background-color: #1a2b3c;
-  border-color: #1a2b3c;
+    background-color: #1a2b3c;
+    border-color: #1a2b3c;
 }
 
 /* Add to globals.css */
 .bg-light {
-  background-color: #f8f9fa !important;
+    background-color: #f8f9fa !important;
 }
 
 .bg-primary {
-  background-color: #1abc9c !important; /* Original primary color from your theme */
+    background-color: #1abc9c !important; /* Original primary color from your theme */
 }
 
 .text-secondary {
-  color: #2c3e50 !important; /* Original secondary color from your theme */
+    color: #2c3e50 !important; /* Original secondary color from your theme */
 }
 
 /* Ensure contact section text stays white */
 .page-section.bg-primary {
-  color: #fff;
+    color: #fff;
 }
 
 /* Adjust button contrast in contact section */
 .page-section.bg-primary .btn-primary {
-  background-color: #2c3e50;
-  border-color: #2c3e50;
+    background-color: #2c3e50;
+    border-color: #2c3e50;
 }
 .page-section.bg-primary .btn-primary:hover {
-  background-color: #1a2b3c;
-  border-color: #1a2b3c;
+    background-color: #1a2b3c;
+    border-color: #1a2b3c;
 }
 
 #about-sent {
@@ -72,6 +73,7 @@
   height: 0;
   font-style: italic;
 }
+
 
 .editor-container {
   max-width: 900px;
@@ -187,6 +189,7 @@
   min-height: 400px;
   padding: 1rem;
   background-color: #ffffff;
+  color: #333;
   border: 1px solid #ddd;
   border-radius: 8px;
   line-height: 1.6;
@@ -199,6 +202,61 @@
   outline: none;
 }
 
+/* Make tables more visible */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid #ddd;
+}
+
+.ProseMirror th, 
+.ProseMirror td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* Add zebra striping for better readability */
+.ProseMirror tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Add this to your globals.css */
+/* List Styling */
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.5rem 0;
+  color: #333; /* Ensure text color is visible */
+}
+
+/* Make sure list markers are visible */
+.ProseMirror ul li::marker {
+  color: #333;
+}
+
+.ProseMirror ol li::marker {
+  color: #333;
+}
+
 /* Placeholder fix (already in your CSS, repeated for clarity) */
 .is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -208,6 +266,7 @@
   height: 0;
   font-style: italic;
 }
+
 
 .modal-backdrop {
   position: fixed;
@@ -222,6 +281,30 @@
   z-index: 50;
 }
 
+.modal-shared-list {
+  margin-top: 1rem;
+  border-top: 1px solid #ccc;
+  padding-top: 1rem;
+}
+
+.shared-user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.shared-user-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.access-level {
+  font-style: italic;
+  color: #666;
+}
+
+
 .custom-modal {
   background: white;
   padding: 2rem;
@@ -233,6 +316,7 @@
   position: relative;
   border: 2px solid black;
   color: #000;
+  
 }
 
 .modal-title {
@@ -264,8 +348,69 @@
   background-color: #31e43d;
 }
 
-.highlight {
-  background-color: #fde68a;
-  border-radius: 2px;
-  padding: 0 2px;
+/* Add table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid #ddd;
+}
+
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+table th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* Add to globals.css */
+/* Force simple table structure */
+.tiptap-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1rem 0 !important;
+  border: 1px solid #ddd !important;
+}
+
+.tiptap-table th,
+.tiptap-table td {
+  border: 1px solid #ddd !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+}
+
+.tiptap-table th {
+  background-color: #f2f2f2 !important;
+  font-weight: 600 !important;
+}
+
+/* Hide all empty elements */
+.tiptap-table td:empty,
+.tiptap-table th:empty,
+.tiptap-table tr:empty {
+  display: none !important;
+}
+
+/* Remove all unnecessary spacing */
+.tiptap-table * {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-spacing: 0 !important;
+}
+
+/* Remove any min-width constraints */
+.tiptap-table,
+.tiptap-table th,
+.tiptap-table td {
+  min-width: auto !important;
+  max-width: none !important;
+}
+
+/* Remove any special classes */
+.tiptap-table .ProseMirror-trailingBreak {
+  display: none !important;
 }

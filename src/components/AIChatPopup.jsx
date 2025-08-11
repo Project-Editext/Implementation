@@ -1,13 +1,15 @@
+// src/components/AIChatPopup.jsx
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 import { Resizable } from "react-resizable";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import DOMPurify from "dompurify";
 
 // Add CSS for resize handle
 import "react-resizable/css/styles.css";
 
-export default function AIChatPopup({ documentContent }) {
+export default function AIChatPopup({ documentContent, editor }) {
   const [messages, setMessages] = useState([
     { 
       role: "assistant", 
@@ -29,6 +31,116 @@ export default function AIChatPopup({ documentContent }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const cleanTableHTML = (html) => {
+    // Parse the HTML string
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Find all tables
+    const tables = doc.querySelectorAll('table');
+    
+    tables.forEach(table => {
+      // Remove all empty rows
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td, th');
+        let isEmpty = true;
+        
+        // Check if row is empty
+        cells.forEach(cell => {
+          if (cell.textContent.trim() !== '') {
+            isEmpty = false;
+          }
+        });
+        
+        if (isEmpty) {
+          row.remove();
+        }
+      });
+      
+      // Remove all empty cells
+      const allCells = table.querySelectorAll('td, th');
+      allCells.forEach(cell => {
+        if (cell.textContent.trim() === '') {
+          cell.remove();
+        }
+      });
+      
+      // Remove all <br> elements
+      const breaks = table.querySelectorAll('br');
+      breaks.forEach(br => br.remove());
+      
+      // Remove all <p> wrappers
+      const paragraphs = table.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        const parent = p.parentNode;
+        while (p.firstChild) {
+          parent.insertBefore(p.firstChild, p);
+        }
+        p.remove();
+      });
+      
+      // If the table is still messy, rebuild it completely
+      const newTable = document.createElement('table');
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
+      
+      // Process existing rows
+      const remainingRows = table.querySelectorAll('tr');
+      let isHeaderRow = true;
+      let hasHeader = false;
+      
+      remainingRows.forEach(row => {
+        const cells = row.querySelectorAll('td, th');
+        const newRow = document.createElement('tr');
+        let hasContent = false;
+        
+        cells.forEach(cell => {
+          const content = cell.textContent.trim();
+          if (content) {
+            hasContent = true;
+            const newCell = document.createElement(isHeaderRow ? 'th' : 'td');
+            newCell.textContent = content;
+            newRow.appendChild(newCell);
+          }
+        });
+        
+        if (hasContent) {
+          if (isHeaderRow && !hasHeader) {
+            thead.appendChild(newRow);
+            hasHeader = true;
+            isHeaderRow = false;
+          } else {
+            tbody.appendChild(newRow);
+          }
+        }
+      });
+      
+      // Only keep tables with valid structure
+      if (thead.children.length > 0 && tbody.children.length > 0) {
+        newTable.appendChild(thead);
+        newTable.appendChild(tbody);
+        table.parentNode.replaceChild(newTable, table);
+      } else {
+        table.remove();
+      }
+    });
+    
+    // Serialize back to HTML
+    return doc.body.innerHTML;
+  };
+
+  const cleanHTML = (html) => {
+    // First clean tables
+    let cleaned = cleanTableHTML(html);
+    
+    // Then apply general sanitization
+    return DOMPurify.sanitize(cleaned, {
+      ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'strong', 'em'],
+      FORBID_ATTR: ['style', 'class', 'onclick', 'colspan', 'rowspan', 'colwidth']
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,10 +164,28 @@ export default function AIChatPopup({ documentContent }) {
       });
 
       const data = await response.json();
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: data.answer 
-      }]);
+      
+      if (data.htmlContent) {
+        // Clean and sanitize HTML
+        const cleanedHTML = cleanHTML(data.htmlContent);
+        
+        // Insert at cursor position
+        if (editor) {
+          editor.commands.insertContent(cleanedHTML);
+        }
+        
+        // Add confirmation message to chat
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: data.message || "Content added to document" 
+        }]);
+      } else {
+        // Fallback for non-HTML responses
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: data.message || "No content generated" 
+        }]);
+      }
     } catch (error) {
       console.error("AI Error:", error);
       setMessages(prev => [...prev, { 
@@ -83,7 +213,7 @@ export default function AIChatPopup({ documentContent }) {
       >
         <div 
           ref={draggableRef}
-          className="bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden flex flex-col relative"
+          className="bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden flex flex-col absolute top-20 right-4"
           style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
         >
           <div className="handle bg-gray-800 text-white p-2 flex justify-between items-center cursor-move">

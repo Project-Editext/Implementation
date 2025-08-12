@@ -6,8 +6,27 @@ import { templates } from "@/lib/templateMap";
 
 export const dynamic = "force-dynamic";
 
-// GET: Fetch documents owned or shared with the user
-export async function GET() {
+// ADDED: Helper function to determine the sort query based on the URL parameter
+const getSortObject = (option) => {
+  switch (option) {
+    case 'title_asc':
+      return { title: 1 };
+    case 'title_desc':
+      return { title: -1 };
+    case 'created_asc':
+      return { createdAt: 1 };
+    case 'created_desc':
+      return { createdAt: -1 };
+    case 'modified_asc':
+      return { updatedAt: 1 };
+    case 'modified_desc':
+    default:
+      return { updatedAt: -1 };
+  }
+};
+
+// MODIFIED: GET function now accepts 'req' to read URL parameters
+export async function GET(req) {
   try {
     await connectToDB();
 
@@ -16,12 +35,19 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // ADDED: Read the 'sort' parameter from the request URL
+    const sortOption = req.nextUrl.searchParams.get('sort');
+
+    // ADDED: Convert the parameter into a database-friendly sort object
+    const sortQuery = getSortObject(sortOption);
+
+    // MODIFIED: The hardcoded sort is replaced with the dynamic sortQuery
     const docs = await Document.find({
       $or: [
         { userId },
         { "sharedWith.user": userId }
       ]
-    }).sort({ createdAt: -1 });
+    }).sort(sortQuery);
 
     return NextResponse.json(docs);
   } catch (error) {
@@ -33,7 +59,7 @@ export async function GET() {
   }
 }
 
-// POST: Create a new document with optional template
+// POST: Create a new document with optional template (This function is unchanged)
 export async function POST(req) {
   try {
     await connectToDB();

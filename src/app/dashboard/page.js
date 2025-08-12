@@ -1,10 +1,9 @@
 'use client';
 import '/public/css/globals.css';
 import Image from 'next/image';
-// MODIFIED: Imported 'useEffect' and 'useState'
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { useTheme } from 'next-themes';
@@ -18,8 +17,6 @@ import {
 import CreateDocModal from '../../components/CreateDocModal';
 
 export default function Dashboard() {
-  // ADDED: State to safely handle hydration
-  const [isMounted, setIsMounted] = useState(false);
   const [docs, setDocs] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -27,21 +24,15 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const currentSort = searchParams.get('sort') || 'modified_desc';
-
-  // ADDED: useEffect to set the mounted state only on the client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
-    fetch(`/api/documents?sort=${currentSort}`)
+    // Load all docs initially
+    fetch('/api/documents')
       .then((res) => res.json())
       .then(setDocs);
-  }, [currentSort]);
+  }, []);
 
+  // Search handler
   const handleSearch = async (e) => {
     e.preventDefault();
     setIsSearching(true);
@@ -53,6 +44,7 @@ export default function Dashboard() {
     setIsSearching(false);
   };
 
+  // Optionally, update results as user types (debounced)
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSearchResults([]);
@@ -63,11 +55,6 @@ export default function Dashboard() {
     }, 400);
     return () => clearTimeout(timeout);
   }, [searchQuery]);
-
-  const handleSortChange = (e) => {
-    const newSortOption = e.target.value;
-    router.push(`${pathname}?sort=${newSortOption}`);
-  };
 
   const templateIcons = {
     Notes: ClipboardIcon,
@@ -104,16 +91,10 @@ export default function Dashboard() {
   const recentFileIcon = theme === 'dark' ? 'text-gray-300' : 'text-gray-600';
   const titleColor = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
   const noDocsColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
-  const selectBg = theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-200 border-gray-300';
-  const selectText = theme === 'dark' ? 'text-white' : 'text-black';
-
-  // ADDED: Conditional return to prevent hydration error
-  if (!isMounted) {
-    return null;
-  }
 
   return (
     <div className={`min-h-screen ${mainBg}`}>
+      {/* Header */}
       <header className={`navbar ${headerBg} px-4 py-3 shadow-md`}>
         <div className="container-fluid d-flex justify-between align-items-center">
           <div className="d-flex align-items-center gap-3">
@@ -157,6 +138,7 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Search Results */}
       {searchQuery.trim() !== '' && (
         <div className="px-10 pt-2 pb-4">
           <h3 className="text-lg font-bold mb-2">Search Results</h3>
@@ -181,6 +163,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Main */}
       <main className="px-10 pt-2 pb-8">
         <h2
           className={`text-3xl font-medium text-center mb-8 tracking-tight font-sans ${titleColor}`}
@@ -188,7 +171,9 @@ export default function Dashboard() {
           Create Blank Document or Select a Template
         </h2>
 
+        {/* Template grid */}
         <div className="grid grid-cols-6 gap-6 justify-items-center mb-12">
+          {/* Create new doc */}
           <div
             onClick={() => setShowModal(true)}
             className={`${createDocBg} p-6 rounded-lg text-center font-semibold cursor-pointer w-28 h-36 flex flex-col justify-center items-center`}
@@ -201,6 +186,7 @@ export default function Dashboard() {
             <p className="text-sm">Create New Document</p>
           </div>
 
+          {/* Template items */}
           {Object.entries(templateIcons).map(([label, Icon]) => (
             <div
               key={label}
@@ -232,22 +218,8 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">Recent Files</h3>
-            <select
-                value={currentSort}
-                onChange={handleSortChange}
-                className={`text-sm rounded-lg block p-2 border ${selectBg} ${selectText}`}
-                aria-label="Sort documents by"
-            >
-                <option value="modified_desc">Date Modified (Newest)</option>
-                <option value="modified_asc">Date Modified (Oldest)</option>
-                <option value="title_asc">Title (A-Z)</option>
-                <option value="title_desc">Title (Z-A)</option>
-                <option value="created_desc">Date Created (Newest)</option>
-                <option value="created_asc">Date Created (Oldest)</option>
-            </select>
-        </div>
+        {/* Recent Files */}
+        <h3 className="text-lg font-bold mb-4">Recent Files</h3>
         <div className="grid grid-cols-4 gap-6">
           {docs.length > 0 ? (
             docs.map((doc) => (
@@ -266,6 +238,7 @@ export default function Dashboard() {
         </div>
       </main>
 
+      {/* Create Document Modal */}
       <CreateDocModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </div>
   );

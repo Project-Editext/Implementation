@@ -3,6 +3,8 @@ import { connectToDB } from "@/lib/mongo";
 import Document from "@/models/Document";
 import { auth } from "@clerk/nextjs/server";
 import { templates } from "@/lib/templateMap";
+import { v4 as uuidv4 } from "uuid";
+
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +79,9 @@ export async function POST(req) {
       title: body.title || "Untitled",
       content: templateContent,
       createdAt: new Date(),
-      userId
+      userId,
+      documentId: uuidv4(), // ✅ generate unique ID
+      folderId: body.folderId || null,
     });
 
     return NextResponse.json(newDoc, { status: 201 });

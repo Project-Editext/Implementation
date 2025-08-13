@@ -40,6 +40,7 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tiptap": "^0.15.0",
+    "uuid": "^11.1.0",
     "yjs": "^13.6.27"
   },
   "devDependencies": {

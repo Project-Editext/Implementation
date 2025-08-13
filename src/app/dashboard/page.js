@@ -1,3 +1,4 @@
+
 "use client";
 import "/public/css/globals.css";
 import Image from "next/image";
@@ -558,7 +559,6 @@ export default function Dashboard() {
         onClose={() => setShowFolderModal(false)}
         onCreateFolder={handleCreateFolder} // ✅ must match the prop in the modal
       />
-
       <CreateDocModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}

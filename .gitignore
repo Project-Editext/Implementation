@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Ignore all zip files
+*.zip
+
 # next.js
 /.next/
 /out/

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createSearchPlugin, searchPluginKey } from '../lib/editor/searchPlugin';
+import { createSearchPlugin } from '../lib/editor/searchPlugin';
 
 export default function SearchBar({ editor }) {
   const [query, setQuery] = useState('');
@@ -7,8 +7,9 @@ export default function SearchBar({ editor }) {
   const updateSearchPlugin = (searchQuery) => {
     if (!editor) return;
 
+    // Remove old search plugin if exists
     const pluginsWithoutSearch = editor.state.plugins.filter(
-      (p) => p.key !== searchPluginKey
+      (p) => p.spec && p.spec.isSearchPlugin !== true
     );
 
     const searchPlugin = createSearchPlugin(searchQuery.trim());

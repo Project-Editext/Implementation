@@ -1,9 +1,8 @@
-
+//src/app/dashboard/page.js
 "use client";
+import { Suspense, useEffect, useState } from "react";
 import "/public/css/globals.css";
 import Image from "next/image";
-// MODIFIED: Imported 'useEffect' and 'useState'
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -21,6 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import CreateDocModal from "../../components/CreateDocModal";
 
+// Sort function remains the same
 const sortItems = (items, sortKey) => {
   return [...items].sort((a, b) => {
     switch (sortKey) {
@@ -42,11 +42,10 @@ const sortItems = (items, sortKey) => {
   });
 };
 
-export default function Dashboard() {
-  // ADDED: State to safely handle hydration
+// DashboardContent component that uses searchParams
+function DashboardContent() {
   const [folders, setFolders] = useState([]);
   const [showFolderModal, setShowFolderModal] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [docs, setDocs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -58,34 +57,27 @@ export default function Dashboard() {
     folderId: null,
     folderName: "Dashboard",
   });
-  const { theme, setTheme } = useTheme();
+  
+  const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSort = searchParams.get("sort") || "modified_desc";
 
-  // ADDED: useEffect to set the mounted state only on the client
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  useEffect(() => {
-    if (isMounted) {
-      fetch("/api/folders")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            setFolders(sortItems(data, currentSort)); // Sort on load
-          } else {
-            console.error("API did not return an array for folders:", data);
-            setFolders([]);
-          }
-        });
-    }
-  }, [isMounted, currentSort]);
+    fetch("/api/folders")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setFolders(sortItems(data, currentSort));
+        } else {
+          console.error("API did not return an array for folders:", data);
+          setFolders([]);
+        }
+      });
+  }, [currentSort]);
 
   useEffect(() => {
-    if (!isMounted) return;
-
     const params = new URLSearchParams();
     if (currentView.folderId) params.append("folderId", currentView.folderId);
     if (currentSort) params.append("sort", currentSort);
@@ -95,14 +87,12 @@ export default function Dashboard() {
       .then((res) => res.json())
       .then((data) => {
         if (currentView.folderId) {
-          // Only show docs that belong to this folder
           setDocs(data.filter((doc) => doc.folderId === currentView.folderId));
         } else {
-          // Only show docs not in any folder (root dashboard)
           setDocs(data.filter((doc) => !doc.folderId));
         }
       });
-  }, [currentView, currentSort, isMounted]);
+  }, [currentView, currentSort]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -130,7 +120,6 @@ export default function Dashboard() {
     const newSortOption = e.target.value;
     router.push(`${pathname}?sort=${newSortOption}`);
 
-    // Sort both folders and docs
     setFolders((current) => sortItems(current, newSortOption));
     setDocs((current) => sortItems(current, newSortOption));
   };
@@ -155,13 +144,10 @@ export default function Dashboard() {
 
       const updatedDoc = await res.json();
 
-      // Update local state
       setDocs((currentDocs) => {
-        // If moved to a different folder, remove from current view
         if (currentView.folderId !== updatedDoc.folderId) {
           return currentDocs.filter((d) => d._id !== updatedDoc._id);
         }
-        // If moved inside same folder or root, update the doc
         return currentDocs.map((d) =>
           d._id === updatedDoc._id ? updatedDoc : d
         );
@@ -183,7 +169,7 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: folderName }),
-        credentials: "include", // important for Clerk auth
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -214,10 +200,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Remove the folder locally
       setFolders((prev) => prev.filter((f) => f._id !== folderId));
-
-      // Move docs back to dashboard
       setDocs((prev) =>
         prev.map((d) =>
           d.folderId === folderId ? { ...d, folderId: null } : d
@@ -244,7 +227,6 @@ export default function Dashboard() {
     Calendar: "calendar",
   };
 
-  // Theme classes
   const mainBg =
     theme === "dark" ? "bg-gray-900 text-white" : "bg-gray-50 text-black";
   const headerBg =
@@ -270,56 +252,8 @@ export default function Dashboard() {
       : "bg-gray-200 border-gray-300";
   const selectText = theme === "dark" ? "text-white" : "text-black";
 
-  // ADDED: Conditional return to prevent hydration error
-  if (!isMounted) {
-    return null;
-  }
-
   return (
-    <div className={`min-h-screen ${mainBg}`}>
-      <header className={`navbar ${headerBg} px-4 py-3 shadow-md`}>
-        <div className="container-fluid d-flex justify-between align-items-center">
-          <div className="d-flex align-items-center gap-3">
-            <Link href="/" aria-label="Go to homepage">
-              <Image
-                className="logo me-2"
-                src="/assets/img/logo.png"
-                alt="Company Logo"
-                width={40}
-                height={40}
-              />
-            </Link>
-            <h1 className="mb-0 fs-4">Editext</h1>
-          </div>
-          <form
-            className="flex-grow mx-4"
-            onSubmit={handleSearch}
-            role="search"
-            aria-label="Search documents"
-          >
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for a document..."
-              className="form-control form-control-sm w-full px-3 py-2 rounded"
-              aria-label="Search for a document"
-            />
-          </form>
-          <div className="d-flex align-items-center gap-3">
-            <button
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="btn btn-sm btn-outline-light"
-              aria-label="Toggle theme"
-              title="Toggle theme"
-            >
-              {theme === "light" ? "🌙" : "☀️"}
-            </button>
-            <UserButton afterSignOutUrl="/#portfolio" />
-          </div>
-        </div>
-      </header>
-
+    <div className={mainBg}>
       {searchQuery.trim() !== "" && (
         <div className="px-10 pt-2 pb-4">
           <h3 className="text-lg font-bold mb-2">Search Results</h3>
@@ -347,7 +281,6 @@ export default function Dashboard() {
       <main className="px-10 pt-2 pb-8">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
-            {/* "Back" button only shows when inside a folder */}
             {currentView.folderId && (
               <button
                 onClick={() =>
@@ -372,7 +305,6 @@ export default function Dashboard() {
                 </svg>
               </button>
             )}
-            {/* The title now dynamically shows the current folder's name */}
             <h2
               className={`text-3xl font-medium tracking-tight font-sans ${titleColor}`}
             >
@@ -448,8 +380,7 @@ export default function Dashboard() {
             <option value="created_asc">Date Created (Oldest)</option>
           </select>
         </div>
-        {/* Folders Section */}
-        {!currentView.folderId && ( // Only show on root dashboard
+        {!currentView.folderId && (
           <div className="mb-8">
             <h3 className="text-lg font-bold mb-4">Folders</h3>
             <div className="grid grid-cols-4 gap-6">
@@ -459,7 +390,6 @@ export default function Dashboard() {
                     key={folder._id}
                     className={`${recentFileBg} p-6 rounded-lg text-center cursor-pointer w-40 h-40 flex flex-col justify-center items-center relative`}
                   >
-                    {/* Folder content */}
                     <div
                       onClick={() =>
                         setCurrentView({
@@ -473,10 +403,9 @@ export default function Dashboard() {
                       <p className="text-sm">{folder.name}</p>
                     </div>
 
-                    {/* Delete button */}
                     <button
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent opening folder
+                        e.stopPropagation();
                         handleDeleteFolder(folder._id);
                       }}
                       className="absolute top-2 right-2 p-1 rounded-full bg-red-500 bg-opacity-70 text-white hover:bg-opacity-90"
@@ -506,7 +435,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Files Section */}
         <div className="mb-8">
           <h3 className="text-lg font-bold mb-4">Files</h3>
           <div className="grid grid-cols-4 gap-6">
@@ -557,7 +485,7 @@ export default function Dashboard() {
       <CreateFolderModal
         isOpen={showFolderModal}
         onClose={() => setShowFolderModal(false)}
-        onCreateFolder={handleCreateFolder} // ✅ must match the prop in the modal
+        onCreateFolder={handleCreateFolder}
       />
       <CreateDocModal
         isOpen={showModal}
@@ -572,6 +500,72 @@ export default function Dashboard() {
         folders={folders}
         doc={docToMove}
       />
+    </div>
+  );
+}
+
+// Main Dashboard component with Suspense
+export default function Dashboard() {
+  const [isMounted, setIsMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
+  const headerBg =
+    theme === "dark" ? "bg-gray-800 text-white" : "bg-secondary text-white";
+
+  return (
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'}`}>
+      <header className={`navbar ${headerBg} px-4 py-3 shadow-md`}>
+        <div className="container-fluid d-flex justify-between align-items-center">
+          <div className="d-flex align-items-center gap-3">
+            <Link href="/" aria-label="Go to homepage">
+              <Image
+                className="logo me-2"
+                src="/assets/img/logo.png"
+                alt="Company Logo"
+                width={40}
+                height={40}
+              />
+            </Link>
+            <h1 className="mb-0 fs-4">Editext</h1>
+          </div>
+          <form
+            className="flex-grow mx-4"
+            onSubmit={(e) => e.preventDefault()}
+            role="search"
+            aria-label="Search documents"
+          >
+            <input
+              type="search"
+              placeholder="Search for a document..."
+              className="form-control form-control-sm w-full px-3 py-2 rounded"
+              aria-label="Search for a document"
+            />
+          </form>
+          <div className="d-flex align-items-center gap-3">
+            <button
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="btn btn-sm btn-outline-light"
+              aria-label="Toggle theme"
+              title="Toggle theme"
+            >
+              {theme === "light" ? "🌙" : "☀️"}
+            </button>
+            <UserButton afterSignOutUrl="/#portfolio" />
+          </div>
+        </div>
+      </header>
+
+      <Suspense fallback={<div className="p-10">Loading dashboard content...</div>}>
+        <DashboardContent />
+      </Suspense>
     </div>
   );
 }

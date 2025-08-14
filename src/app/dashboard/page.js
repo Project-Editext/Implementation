@@ -10,6 +10,7 @@ import CreateFolderModal from "../../components/CreateFolderModal";
 import MoveToFolderModal from "../../components/MoveToFolderModal";
 import { DocumentIcon } from "@heroicons/react/24/outline";
 import { useTheme } from "next-themes";
+import { format } from "date-fns";
 import {
   ClipboardIcon,
   ClockIcon,
@@ -19,6 +20,12 @@ import {
   CalendarIcon,
 } from "@heroicons/react/24/outline";
 import CreateDocModal from "../../components/CreateDocModal";
+
+
+const formatCreationDate = (dateString) => {
+  const date = new Date(dateString);
+  return format(date, "dd/MM/yyyy");
+};
 
 // Sort function remains the same
 const sortItems = (items, sortKey) => {
@@ -269,6 +276,9 @@ function DashboardContent() {
                 >
                   <DocumentIcon className="h-8 w-8 mb-2" />
                   <p className="text-sm">{doc.title || "Untitled"}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formatCreationDate(doc.createdAt)}
+                  </p>
                 </Link>
               ))}
             </div>

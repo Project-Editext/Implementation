@@ -9,3 +9,6 @@ What is Editext?
 Who is Editext for?
     The Editext app is the ideal solution for students and professionals who regularly work
     on text editors for school, work, or business.
+
+Final Project Demo 
+    Youtube Link: https://youtu.be/ODwPrrJvZzw
